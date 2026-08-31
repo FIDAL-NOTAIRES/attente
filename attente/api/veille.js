@@ -29,13 +29,31 @@ async function chercher(url, ms = 6000) {
   try {
     const r = await fetch(url, {
       signal: garde.signal,
-      headers: { "user-agent": "FIDAL-ATTENTE/1.0 (+ecran d'attente interne)" },
+      // ⚠ UA de navigateur : ESPN renvoie 403 aux user-agents maison
+      // (constaté au premier déploiement, 31/08/2026). Les flux RSS s'en moquent.
+      headers: {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "accept": "application/json, application/rss+xml, application/xml, text/xml, */*",
+      },
     });
     if (!r.ok) throw new Error("HTTP " + r.status);
     return await r.text();
   } finally {
     clearTimeout(minuterie);
   }
+}
+
+
+// -- entités HTML : les nommées courantes + TOUTES les numériques (&#xE0; /
+// &#224;) — franceinfo encode ainsi chaque accent (constaté au premier
+// déploiement). &amp; en DERNIER, sinon &amp;#233; se décode deux fois.
+function decoderEntites(t) {
+  return t
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'").replace(/&nbsp;/g, "\u00a0")
+    .replace(/&amp;/g, "&");
 }
 
 // -- RSS sans dépendance : extraction <item><title> à la regex, CDATA compris.
@@ -47,12 +65,7 @@ function titresRSS(xml, max = 12) {
   for (const it of items.slice(0, max)) {
     const m = it.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/);
     if (m && m[1]) {
-      titres.push(
-        m[1]
-          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
-          .replace(/\s+/g, " ").trim()
-      );
+      titres.push(decoderEntites(m[1]).replace(/\s+/g, " ").trim());
     }
   }
   return titres;
