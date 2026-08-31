@@ -23,7 +23,7 @@ const DUREES = {                       // s-maxage, stale-while-revalidate (s)
 };
 
 // -- petit fetch avec délai de garde : une source lente ne doit pas bloquer --
-async function chercher(url, ms = 6000) {
+async function chercher(url, ms = 6000, entetes = {}) {
   const garde = new AbortController();
   const minuterie = setTimeout(() => garde.abort(), ms);
   try {
@@ -34,6 +34,7 @@ async function chercher(url, ms = 6000) {
       headers: {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
         "accept": "application/json, application/rss+xml, application/xml, text/xml, */*",
+        ...entetes,
       },
     });
     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -91,41 +92,30 @@ async function actus(erreurs) {
   return alterne.slice(0, 18);
 }
 
-// -- Classements : ESPN expose un JSON public sans clé. ⚠ Point à VALIDER au
-// premier déploiement : l'identifiant Top 14 (repli sur la L1 seule sinon).
-function lireClassementESPN(json, max = 8) {
-  const racine = JSON.parse(json);
-  const grappes = racine.children || [racine];
-  for (const g of grappes) {
-    const entrees = (g.standings && g.standings.entries) || g.entries;
-    if (!entrees || !entrees.length) continue;
-    return entrees.slice(0, max).map((e, i) => {
-      const stat = (nom) => {
-        const s = (e.stats || []).find((x) => x.name === nom || x.type === nom);
-        return s ? (s.displayValue ?? s.value) : null;
-      };
-      return {
-        rang: stat("rank") || i + 1,
-        equipe: (e.team && (e.team.shortDisplayName || e.team.displayName)) || "?",
-        joues: stat("gamesPlayed"),
-        points: stat("points"),
-      };
-    });
-  }
-  return [];
-}
+// -- Classements : football-data.org (ESPN abandonné le 31/08/2026 : 403 sur
+// les IP de datacenter, quel que soit l'habillage). Clé gratuite dans la
+// variable d'environnement FOOTBALL_DATA_CLE (Secret Vercel, comme
+// DATABASE_URL sur MATRICE). Offre gratuite : la Ligue 1 (FL1) y est, le
+// Top 14 n'a pas de source gratuite sérieuse — abandonné, la carte du front
+// n'affiche que ce qui existe. Quota 10 req/min : avec 6 h de cache CDN on
+// fait ~4 appels/jour, indolore.
 async function classements(erreurs) {
-  // EN PARALLÈLE : deux sources lentes en séquence (2 × 6 s de garde)
-  // dépasseraient le délai de la fonction serverless.
-  const [l1, t14] = await Promise.all([
-    chercher("https://site.api.espn.com/apis/v2/sports/soccer/fra.1/standings")
-      .then(lireClassementESPN)
-      .catch((e) => { erreurs.push("classements/ligue1 : " + e.message); return []; }),
-    chercher("https://site.api.espn.com/apis/v2/sports/rugby/270559/standings")
-      .then(lireClassementESPN)
-      .catch((e) => { erreurs.push("classements/top14 : " + e.message); return []; }),
-  ]);
-  return { ligue1: l1, top14: t14 };
+  const resultat = { ligue1: [], top14: [] };
+  const cle = process.env.FOOTBALL_DATA_CLE;
+  if (!cle) { erreurs.push("classements : FOOTBALL_DATA_CLE absente des variables d'environnement"); return resultat; }
+  try {
+    const brut = await chercher("https://api.football-data.org/v4/competitions/FL1/standings", 6000,
+      { "X-Auth-Token": cle });
+    const racine = JSON.parse(brut);
+    const table = ((racine.standings || []).find((s) => s.type === "TOTAL") || (racine.standings || [])[0] || {}).table || [];
+    resultat.ligue1 = table.slice(0, 8).map((l) => ({
+      rang: l.position,
+      equipe: (l.team && (l.team.shortName || l.team.name)) || "?",
+      joues: l.playedGames,
+      points: l.points,
+    }));
+  } catch (e) { erreurs.push("classements/ligue1 : " + e.message); }
+  return resultat;
 }
 
 // -- Culturel : premier flux qui répond, dans l'ordre. Cinéma, expos, livres
