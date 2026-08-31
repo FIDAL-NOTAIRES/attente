@@ -1,0 +1,6 @@
+{
+  "name": "attente",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ATTENTE — écran d'attente riche des outils FIDAL Notaires (module partagé + /api/veille)"
+}

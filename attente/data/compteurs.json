@@ -1,0 +1,15 @@
+{
+  "note": "Chiffres INDICATIFS pour écran d'attente — bases arrondies mi-2026, taux moyens lissés par seconde. Mettre à jour la base et la date `reference` à chaque publication d'institut (INSEE, Eurostat, ONU, Trésors nationaux) ; le client extrapole base + taux × secondes écoulées depuis `reference`.",
+  "reference": "2026-07-01T00:00:00Z",
+  "pays": [
+    { "nom": "France",      "population": 68450000,   "popParSec": 0.0044,  "dette": 3350000000000,    "detteParSec": 5100,   "devise": "€" },
+    { "nom": "Allemagne",   "population": 84500000,   "popParSec": -0.001,  "dette": 2720000000000,    "detteParSec": 2300,   "devise": "€" },
+    { "nom": "Italie",      "population": 58600000,   "popParSec": -0.0095, "dette": 3020000000000,    "detteParSec": 2700,   "devise": "€" },
+    { "nom": "Espagne",     "population": 48800000,   "popParSec": 0.013,   "dette": 1640000000000,    "detteParSec": 1700,   "devise": "€" },
+    { "nom": "Royaume-Uni", "population": 68600000,   "popParSec": 0.016,   "dette": 2920000000000,    "detteParSec": 4200,   "devise": "£" },
+    { "nom": "États-Unis",  "population": 342500000,  "popParSec": 0.051,   "dette": 37600000000000,   "detteParSec": 63000,  "devise": "$" },
+    { "nom": "Chine",       "population": 1408000000, "popParSec": -0.044,  "dette": 13800000000000,   "detteParSec": 41000,  "devise": "$" },
+    { "nom": "Inde",        "population": 1454000000, "popParSec": 0.35,    "dette": 2650000000000,    "detteParSec": 8500,   "devise": "$" },
+    { "nom": "Japon",       "population": 123100000,  "popParSec": -0.019,  "dette": 1315000000000000, "detteParSec": 190000, "devise": "¥" }
+  ]
+}

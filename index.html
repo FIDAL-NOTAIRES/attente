@@ -1,0 +1,75 @@
+<!doctype html>
+<!-- ATTENTE — page de démonstration et de TEST du module. Elle simule une
+     génération « 12 sur 30 » en écrivant dans un #spinmsg exactement comme
+     PAINT, et laisse le module suivre. C'est aussi la page servie à la racine
+     du projet Vercel : elle documente l'intégration. -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ATTENTE — écran d'attente FIDAL Notaires</title>
+<style>
+  :root{--nuit:#0F2238;--canard:#33838B;--cyan:#6DD5DC;--orange:#FF982D}
+  body{font:15px/1.55 "Segoe UI",system-ui,sans-serif;color:var(--nuit);max-width:760px;margin:40px auto;padding:0 20px}
+  h1{font-family:Georgia,serif;font-size:30px;margin:0}
+  h1 small{display:block;font:14px "Segoe UI",sans-serif;color:var(--canard);letter-spacing:3px;margin-bottom:6px}
+  h2{font-family:Georgia,serif;font-size:19px;margin:28px 0 8px}
+  button{background:var(--canard);color:#fff;border:0;border-radius:8px;padding:10px 20px;font:15px "Segoe UI",sans-serif;cursor:pointer}
+  button.sec{background:#fff;color:var(--nuit);border:1px solid var(--canard)}
+  pre{background:#f2f5f8;border:1px solid #dde5ec;border-radius:8px;padding:14px;overflow:auto;font-size:13px}
+  #spinmsg{color:#657D96;font-size:13px;min-height:18px}
+</style>
+</head>
+<body>
+  <h1><small>FIDAL NOTAIRES</small>ATTENTE</h1>
+  <p>Écran d'attente riche pour les générations longues. Un script, quatre
+  contenus mis en cache chacun à son rythme, quatre radios, et une trame
+  parcellaire qui se colorise au rythme du traitement.</p>
+
+  <p>
+    <button id="essai">Lancer une génération d'essai (45 s)</button>
+    <button class="sec" id="essai-echec">Simuler un échec en cours de route</button>
+  </p>
+  <div id="spinmsg"></div>
+
+  <h2>Intégration dans un outil</h2>
+  <pre>&lt;script src="https://ATTENTE_DOMAINE/attente.js?v=1"&gt;&lt;/script&gt;
+&lt;script&gt;
+  ATTENTE.demarrer({
+    titre: "Dossier complet",
+    sousTitre: "PAINT — extraits officiels",
+    source: "#spinmsg"          // le module lit « 12 sur 30 » ou « 43 % » tout seul
+    // trame: svgDuParcellaire  // facultatif : sinon trame générique
+  });
+  // … traitement long …
+  ATTENTE.terminer();           // ou ATTENTE.echec("message") : bandeau, le
+                                // contenu continue de tourner
+&lt;/script&gt;</pre>
+
+  <script src="/attente.js"></script>
+  <script>
+    // Simulation : une boucle qui écrit son sablier comme le fait PAINT.
+    const spinmsg = document.getElementById("spinmsg");
+    let minuterie = null;
+    function simuler(avecEchec){
+      clearInterval(minuterie);
+      ATTENTE.demarrer({
+        titre: "Dossier complet",
+        sousTitre: "Démonstration — rien n'est vraiment généré",
+        source: "#spinmsg",
+      });
+      const N = 30; let i = 0;
+      minuterie = setInterval(() => {
+        i++;
+        spinmsg.textContent = "Extrait " + i + " sur " + N + " — parcelle en cours…";
+        if (avecEchec && i === 12) {
+          ATTENTE.echec("le service du cadastre ne répond plus (démonstration)");
+        }
+        if (i >= N) { clearInterval(minuterie); ATTENTE.terminer(); spinmsg.textContent = "Terminé."; }
+      }, 1500);
+    }
+    document.getElementById("essai").onclick = () => simuler(false);
+    document.getElementById("essai-echec").onclick = () => simuler(true);
+  </script>
+</body>
+</html>
