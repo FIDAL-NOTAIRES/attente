@@ -93,7 +93,7 @@
   transform-origin:top center;transform:scale(var(--att-z,1));transition:transform .3s ease}
 
 /* ---- trame parcellaire = jauge de fond ---- */
-#att-voile .att-trame{position:relative;width:min(1400px,94vw);flex:0 0 auto;height:15vh;
+#att-voile .att-trame{position:relative;width:94vw;flex:0 0 auto;height:15vh;
   display:flex;align-items:center;justify-content:center}
 #att-voile .att-trame svg{width:100%;height:100%}
 #att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
@@ -155,7 +155,8 @@
 #att-voile .att-cadre-or{padding:8px;border-radius:3px;display:flex;flex-direction:column;
   background:linear-gradient(135deg,#c9a862,#8a6b3d 42%,#d8bb78 52%,#7d6034);
   box-shadow:0 8px 20px rgba(0,0,0,.45)}
-#att-voile .att-toile{flex:1;background:#F3EBDA;color:#2a2318;padding:10px 11px 11px;
+#att-voile .att-toile{flex:1;display:flex;flex-direction:column;
+  background:#F3EBDA;color:#2a2318;padding:10px 11px 11px;
   box-shadow:inset 0 0 0 1px rgba(42,35,24,.3),inset 0 3px 12px rgba(0,0,0,.1)}
 #att-voile .att-toile h3{color:#2a6a72}
 
@@ -179,6 +180,7 @@
        classement dit ainsi quelque chose au lieu d'aligner des chiffres. --- */
 #att-voile .att-panneau{width:290px;background:linear-gradient(#18344c,#0e2133);
   border:1px solid #42627e;border-radius:8px;padding:0 0 12px;
+  display:flex;flex-direction:column;
   box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.09)}
 #att-voile .att-panneau-tete{display:flex;align-items:center;gap:9px;color:#fff;
   background:linear-gradient(${C.canard},#2a6a72);padding:8px 14px;border-radius:7px 7px 0 0}
@@ -187,8 +189,13 @@
   box-shadow:0 0 9px #8CFF6B;animation:att-pulse 2.6s ease-in-out infinite}
 #att-voile .att-panneau-jour{margin-left:auto;font:11px/1 "Consolas","Courier New",monospace;
   background:rgba(0,0,0,.3);border-radius:3px;padding:3px 8px}
-#att-voile .att-ecran{position:relative;margin:11px 12px 0;background:#08161f;border:1px solid #335066;
+#att-voile .att-ecran{position:relative;flex:1;margin:11px 12px 0;background:#08161f;border:1px solid #335066;
   border-radius:5px;padding:9px 11px;box-shadow:inset 0 0 24px rgba(0,0,0,.7)}
+/* les huit lignes se répartissent sur la hauteur de l'écran : le caisson
+   s'étirant à la hauteur commune des cartes, un tableau à moitié vide ferait
+   panneau en panne plutôt que panneau allumé. */
+#att-voile .att-ecran table{height:100%}
+#att-voile .att-ecran tbody td{height:auto}
 #att-voile .att-ecran::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:4px;
   background:radial-gradient(circle .6px at .6px .6px,rgba(255,255,255,.055) .6px,transparent .7px) 0 0/4px 4px}
 #att-voile .att-ecran table{border-collapse:collapse;width:100%;position:relative}
@@ -567,7 +574,7 @@
       const p = [sommets[j][i], sommets[j][i + 1], sommets[j + 1][i + 1], sommets[j + 1][i]];
       px.push(`<polygon class="att-parc" points="${p.map((c) => c.map((n) => n.toFixed(1)).join(",")).join(" ")}"/>`);
     }
-    return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${px.join("")}</svg>`;
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${px.join("")}</svg>`;
   }
   function poserTrame(svg) {
     const bloc = $("att-trame");
@@ -1058,5 +1065,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.4" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.5" };
 })();
