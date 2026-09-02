@@ -102,7 +102,7 @@
 
 /* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
        corps qui absorbe le manque de place. ---- */
-#att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-end;
+#att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:stretch;
   padding:10px 18px 4px;max-width:1680px;flex:0 0 auto}
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
@@ -114,7 +114,7 @@
          • livres → volume relié, dos toilé à gauche, tranche de pages à droite
        Les perforations et les trous sont peints en couleur de voile : l'aplat
        uni du fond fait le reste, sans mask-composite. ---- */
-#att-voile .att-cult{width:212px;font-size:12.5px}
+#att-voile .att-cult{width:212px;font-size:12.5px;display:flex;flex-direction:column}
 #att-voile .att-cult h3{margin:0 0 6px;font:600 11.5px/1 "Segoe UI",sans-serif;
   display:flex;align-items:center;gap:7px}
 #att-voile .att-cult h3::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
@@ -145,10 +145,10 @@
 /* arts — cadre doré et toile en léger creux. Le titre est en tête, comme sur
    les deux autres cartes : la plaque de musée en pied était plus jolie mais
    désalignait les trois intitulés. */
-#att-voile .att-cadre-or{padding:8px;border-radius:3px;
+#att-voile .att-cadre-or{padding:8px;border-radius:3px;display:flex;flex-direction:column;
   background:linear-gradient(135deg,#c9a862,#8a6b3d 42%,#d8bb78 52%,#7d6034);
   box-shadow:0 8px 20px rgba(0,0,0,.45)}
-#att-voile .att-toile{background:#F3EBDA;color:#2a2318;padding:10px 11px 11px;
+#att-voile .att-toile{flex:1;background:#F3EBDA;color:#2a2318;padding:10px 11px 11px;
   box-shadow:inset 0 0 0 1px rgba(42,35,24,.3),inset 0 3px 12px rgba(0,0,0,.1)}
 #att-voile .att-toile h3{color:#2a6a72}
 
@@ -199,12 +199,12 @@
 
 /* ---- COMPTEURS — compteur électrique : cadran rond en tête, tambours à
        chiffres derrière une vitre, 9 pays en grille simultanée. ---- */
-#att-voile .att-compteur{width:min(560px,92vw);background:linear-gradient(#1a2a3c,#132234);
+#att-voile .att-compteur{width:min(710px,92vw);background:linear-gradient(#1a2a3c,#132234);
   border:1px solid #33455a;border-radius:10px;padding:10px 14px 12px;
   box-shadow:0 4px 16px rgba(0,0,0,.4)}
 #att-voile .att-compteur .att-comp-haut{display:flex;align-items:center;gap:11px;margin-bottom:10px}
 #att-voile .att-compteur h3{font-family:Georgia,serif;font-size:15px;font-weight:700;margin:0;color:${C.cyan}}
-#att-voile .att-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(163px,1fr));gap:8px 13px}
+#att-voile .att-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:8px 13px}
 #att-voile .att-pays{border-top:1px solid rgba(255,255,255,.09);padding-top:6px}
 #att-voile .att-pays-tete{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 #att-voile .att-pays-tete svg{width:21px;height:14px;border-radius:1.5px;flex:0 0 auto;
@@ -680,9 +680,9 @@
         return true;
       };
       let une = false;
-      if (poser("att-c-cinema", d.cinema || d.cinéma, 2)) une = true;
-      if (poser("att-c-arts", d.expos || d.expositions, 2)) une = true;
-      if (poser("att-c-livres", d.livres, 2)) une = true;
+      if (poser("att-c-cinema", d.cinema || d.cinéma, 3)) une = true;
+      if (poser("att-c-arts", d.expos || d.expositions, 3)) une = true;
+      if (poser("att-c-livres", d.livres, 3)) une = true;
       if (!une && d.titres && d.titres.length) {
         poser("att-c-cinema", d.titres, 4);
         $("att-c-cinema-t").textContent = "À l'affiche";
@@ -1042,5 +1042,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.9-liens" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.0" };
 })();
