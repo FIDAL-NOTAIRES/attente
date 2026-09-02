@@ -123,12 +123,22 @@
   background-size:12px 15px;background-position:5px 7px;background-repeat:repeat-y}
 #att-voile .att-pellicule::before{left:0;box-shadow:inset -1px 0 0 rgba(42,35,24,.16)}
 #att-voile .att-pellicule::after{right:0;box-shadow:inset 1px 0 0 rgba(42,35,24,.16)}
-#att-voile .att-photo{padding:11px 5px;border-top:1px solid rgba(42,35,24,.26)}
-#att-voile .att-photo:first-child{border-top:0}
+/* trois cadres distincts : chaque rubrique est un photogramme encadre, avec
+   son accent de couleur au bord gauche. Une pellicule, c'est justement une
+   suite de cadres — autant que le dessin le dise. */
+#att-voile .att-photo{position:relative;margin:7px 0;padding:7px 9px;background:#F5EEDE;
+  border:1px solid rgba(42,35,24,.2);border-left-width:3px;border-radius:2px}
+#att-voile .att-photo.cinema{border-left-color:${C.carmin}}
+#att-voile .att-photo.arts{border-left-color:${C.canard}}
+#att-voile .att-photo.livres{border-left-color:${C.laiton}}
+#att-voile .att-photo-titre{margin:0;padding:10px 4px 2px;background:none;border:0}
 #att-voile .att-pellicule h3{font-family:Georgia,serif;font-size:16px;font-weight:700;margin:0;color:#2a2318}
-#att-voile .att-rub-nom{font:600 11.5px/1 "Segoe UI",sans-serif;color:#A8722B;
+#att-voile .att-rub-nom{font:600 11.5px/1 "Segoe UI",sans-serif;color:#8a7a5c;
   display:flex;align-items:center;gap:8px;margin-bottom:5px}
-#att-voile .att-rub-nom::after{content:"";flex:1;height:1px;background:rgba(168,114,43,.3)}
+#att-voile .att-rub-nom::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
+#att-voile .att-photo.cinema .att-rub-nom{color:${C.carmin}}
+#att-voile .att-photo.arts .att-rub-nom{color:#2a6a72}
+#att-voile .att-photo.livres .att-rub-nom{color:#8a6b3d}
 #att-voile .att-pellicule ul{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.42}
 #att-voile .att-pellicule li{position:relative;padding:2px 0 2px 12px;color:#3a3226;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -203,9 +213,9 @@
 #att-voile .att-od-sep{width:.26em}
 #att-voile .att-od-suf{font-size:10.5px;color:${C.sourdine};margin-left:4px;align-self:center}
 
-/* flèche de tendance : le VERT est toujours vers le haut et signifie « bonne
-   nouvelle ». Pour la population, hausse = vert. Pour la dette, la lecture
-   s'inverse : une dette qui gonfle est une flèche rouge vers le bas. */
+/* flèche de tendance : la DIRECTION dit ce qui se passe, la COULEUR dit si
+   c'est une bonne nouvelle. Deux informations distinctes, donc une dette qui
+   gonfle monte — et monte en rouge (révision du 02/09). */
 #att-voile .att-fleche{width:9px;height:9px;flex:0 0 auto;margin-left:6px;align-self:center}
 #att-voile .att-fleche path{fill:currentColor}
 #att-voile .att-fleche.bon{color:${C.vert};filter:drop-shadow(0 0 4px rgba(76,175,125,.55))}
@@ -433,7 +443,7 @@
     </div>
 
     <div class="att-carte att-pellicule" id="att-c-culturel">
-      <div class="att-photo"><h3>Ce qui sort en ville</h3></div>
+      <div class="att-photo att-photo-titre"><h3>Ce qui sort en ville</h3></div>
       <div id="att-c-culturel-corps"></div>
       <div class="att-bord">PROGRAMME 2026 · 24A · 25A</div>
     </div>
@@ -451,7 +461,7 @@
         </svg>
         <div>
           <h3>Pendant ce temps, dans le monde</h3>
-          <div class="att-comp-h-sous">Estimées seconde par seconde. La flèche verte marque la bonne tendance.</div>
+          <div class="att-comp-h-sous">Estimées seconde par seconde. La flèche donne le sens, sa couleur dit si c'est bon signe.</div>
         </div>
       </div>
       <div class="att-grille" id="att-grille"></div>
@@ -611,18 +621,18 @@
   function chargerCulturel() {
     veille("culturel").then((d) => {
       const rubs = [
-        ["Au cinéma", d.cinema || d.cinéma],
-        ["Arts", d.expos || d.expositions],
-        ["Livres", d.livres],
+        ["Au cinéma", d.cinema || d.cinéma, "cinema"],
+        ["Arts", d.expos || d.expositions, "arts"],
+        ["Livres", d.livres, "livres"],
       ].filter((r) => Array.isArray(r[1]) && r[1].length);
       let html = "";
       if (rubs.length) {
-        html = rubs.map(([nom, liste]) =>
-          `<div class="att-photo"><div class="att-rub-nom">${nom}</div><ul>` +
+        html = rubs.map(([nom, liste, cl]) =>
+          `<div class="att-photo ${cl}"><div class="att-rub-nom">${nom}</div><ul>` +
           liste.slice(0, 2).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
           `</ul></div>`).join("");
       } else if (d.titres && d.titres.length) {
-        html = `<div class="att-photo"><div class="att-rub-nom">À l'affiche</div><ul>` +
+        html = `<div class="att-photo cinema"><div class="att-rub-nom">À l'affiche</div><ul>` +
           d.titres.slice(0, 5).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
           `</ul></div>`;
       } else return;
@@ -648,10 +658,10 @@
           `<div class="att-pays-tete">${drapeau(p.nom, p.code)}<span class="att-pays-nom">${echap(p.nom)}</span></div>` +
           `<div class="att-ligne"><span class="att-ligne-lib">hab.</span>` +
           `<span class="att-vitre"><span class="att-od-val"></span></span>` +
-          fleche(p.popParSec, "Population en hausse", "Population en baisse") + `</div>` +
+          fleche(p.popParSec, true, "Population en hausse", "Population en baisse") + `</div>` +
           `<div class="att-ligne"><span class="att-ligne-lib">dette</span>` +
           `<span class="att-vitre"><span class="att-od-val dette"></span><span class="att-od-suf"></span></span>` +
-          fleche(-p.detteParSec, "Dette qui reflue", "Dette qui s'aggrave") + `</div>`;
+          fleche(p.detteParSec, false, "Dette en hausse", "Dette en baisse") + `</div>`;
         grille.appendChild(cell);
         const vals = cell.querySelectorAll(".att-od-val");
         E.roues.push({
@@ -668,17 +678,24 @@
       E.compteursMinuterie = setInterval(() => tictacCompteurs(false), 1000);
     }).catch(() => {});
   }
-  /* Flèche de tendance. On passe la grandeur DÉJÀ orientée « le positif est
-     une bonne nouvelle » : pour la dette, l'appelant envoie donc -detteParSec.
-     Le vert monte, le rouge descend, un tiret gris pour une valeur nulle ou
-     absente. Le taux ne bouge pas pendant une attente : on dessine une fois. */
-  function fleche(bon, titreBon, titreMauvais) {
-    const n = Number(bon);
-    let genre = "plat", d = "M1 4.1h8v1.8H1z", titre = "Tendance inconnue";
-    if (isFinite(n) && n > 0) { genre = "bon"; d = "M5 1.1L9.2 8.5H.8z"; titre = titreBon; }
-    else if (isFinite(n) && n < 0) { genre = "mauvais"; d = "M5 8.9L.8 1.5h8.4z"; titre = titreMauvais; }
+  /* Flèche de tendance. `taux` est le taux BRUT : son signe donne la direction
+     de la flèche. `bonSiHausse` dit seulement si monter est une bonne nouvelle,
+     et ne décide que de la couleur — d'où une dette qui monte en rouge, et une
+     dette qui reflue en vert vers le bas. Tiret gris si le taux est nul ou
+     absent. Le taux ne bouge pas pendant une attente : on dessine une fois. */
+  const FLECHE_HAUT = "M5 1.1L9.2 8.5H.8z";
+  const FLECHE_BAS = "M5 8.9L.8 1.5h8.4z";
+  function fleche(taux, bonSiHausse, titreHausse, titreBaisse) {
+    const n = Number(taux);
+    if (!isFinite(n) || n === 0) {
+      return `<svg class="att-fleche plat" viewBox="0 0 10 10" role="img" aria-label="Tendance inconnue">` +
+        `<title>Tendance inconnue</title><path d="M1 4.1h8v1.8H1z"/></svg>`;
+    }
+    const hausse = n > 0;
+    const genre = hausse === !!bonSiHausse ? "bon" : "mauvais";
+    const titre = hausse ? titreHausse : titreBaisse;
     return `<svg class="att-fleche ${genre}" viewBox="0 0 10 10" role="img" aria-label="${titre}">` +
-      `<title>${titre}</title><path d="${d}"/></svg>`;
+      `<title>${titre}</title><path d="${hausse ? FLECHE_HAUT : FLECHE_BAS}"/></svg>`;
   }
 
   /* ================= TENIR À L'ÉCRAN =================
@@ -976,5 +993,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.5-pleine-largeur" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.6" };
 })();
