@@ -592,7 +592,7 @@
     veille("culturel").then((d) => {
       const rubs = [
         ["Au cinéma", d.cinema || d.cinéma],
-        ["Expositions", d.expos || d.expositions],
+        ["Arts", d.expos || d.expositions],
         ["Livres", d.livres],
       ].filter((r) => Array.isArray(r[1]) && r[1].length);
       let html = "";
@@ -937,5 +937,5 @@
 
   window.addEventListener("resize", () => { if (E.on) poserAiguille(E.ratio); });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.3-tient-a-lecran" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.3a" };
 })();
