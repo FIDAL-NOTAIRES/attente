@@ -92,41 +92,33 @@
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
 
-/* ---- CULTURE — vrai ticket de cinéma : souche carmin en tête, ligne de
-       perforation avec ses DEUX encoches (c'est ce détail-là qui fait lire
-       « billet » et rien d'autre), bord inférieur déchiqueté, code-barres.
-       Les encoches sont peintes en couleur de fond par-dessus les bords : le
-       voile étant un aplat uni, elles se lisent comme des trous — et ça
-       marche partout, sans mask-composite. ---- */
-#att-voile .att-ticket{width:298px;background:${C.papier};color:${C.papierEncre};border-radius:4px;
-  padding-bottom:14px;transform:rotate(-.8deg);box-shadow:0 8px 22px rgba(0,0,0,.45)}
-#att-voile .att-ticket::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:10px;
-  background:radial-gradient(circle 5px at 5px 5px,${C.nuit} 5px,transparent 5.5px) 0 0/10px 10px repeat-x}
-#att-voile .att-souche{display:flex;align-items:center;gap:10px;background:${C.carmin};color:${C.papier};
-  padding:8px 16px;border-radius:4px 4px 0 0}
-#att-voile .att-souche-mention{font:700 11.5px/1 "Segoe UI",sans-serif;letter-spacing:3px}
-#att-voile .att-souche-num{margin-left:auto;font:11px/1 "Consolas","Courier New",monospace;letter-spacing:1px;opacity:.82}
-#att-voile .att-perf{position:relative;height:2px;
-  background:repeating-linear-gradient(to right,rgba(38,49,60,.42) 0 5px,transparent 5px 11px)}
-#att-voile .att-perf i{position:absolute;top:-6px;width:13px;height:13px;border-radius:50%;background:${C.nuit}}
-#att-voile .att-perf i:first-child{left:-6.5px}
-#att-voile .att-perf i:last-child{right:-6.5px}
-#att-voile .att-ticket-corps{padding:12px 18px 0}
-#att-voile .att-ticket h3{font-family:Georgia,serif;font-size:16px;font-weight:700;margin:0 0 10px;color:${C.papierEncre}}
-#att-voile .att-rub{margin:0 0 9px}
-#att-voile .att-rub:last-child{margin-bottom:0}
-#att-voile .att-rub-nom{font:600 11.5px/1 "Segoe UI",sans-serif;color:${C.carmin};
-  display:flex;align-items:center;gap:8px;margin-bottom:4px}
-#att-voile .att-rub-nom::after{content:"";flex:1;height:1px;background:rgba(160,16,64,.26)}
-#att-voile .att-ticket ul{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.42}
-#att-voile .att-ticket li{position:relative;padding:2px 0 2px 12px}
-#att-voile .att-ticket li::before{content:"";position:absolute;left:0;top:8.5px;width:5px;height:5px;
-  border-radius:50%;background:#c9b998}
-#att-voile .att-code{height:24px;margin:13px 18px 0;opacity:.8;background:repeating-linear-gradient(to right,
-  ${C.papierEncre} 0 1px,transparent 1px 3px,${C.papierEncre} 3px 5px,transparent 5px 6px,
-  ${C.papierEncre} 6px 8px,transparent 8px 12px)}
-#att-voile .att-code-lib{margin:5px 18px 0;text-align:center;color:#8b7f6b;
-  font:10px/1 "Consolas","Courier New",monospace;letter-spacing:2px}
+/* ---- CULTURE — bande de pellicule 35 mm. Un billet de cinéma est large et
+       court ; cette carte est haute et étroite, donc elle ne se lira jamais
+       comme un billet. La pellicule, elle, EST verticale, et son signe
+       distinctif — les perforations sur les deux bords — tombe pile sur cette
+       géométrie. Chaque rubrique occupe un photogramme. Les trous sont peints
+       en couleur de fond : le voile étant un aplat uni, ils se lisent comme de
+       vraies perforations, sans mask-composite. ---- */
+#att-voile .att-pellicule{width:300px;background:#EDE2CB;color:#2a2318;border-radius:2px;
+  padding:0 18px 0;box-shadow:0 8px 22px rgba(0,0,0,.45)}
+#att-voile .att-pellicule::before,
+#att-voile .att-pellicule::after{content:"";position:absolute;top:0;bottom:0;width:18px;
+  background-image:linear-gradient(${C.nuit} 0 9px,transparent 9px);
+  background-size:9px 21px;background-position:4.5px 8px;background-repeat:repeat-y}
+#att-voile .att-pellicule::before{left:0}
+#att-voile .att-pellicule::after{right:0}
+#att-voile .att-photo{padding:11px 5px;border-top:1px solid rgba(42,35,24,.26)}
+#att-voile .att-photo:first-child{border-top:0}
+#att-voile .att-pellicule h3{font-family:Georgia,serif;font-size:16px;font-weight:700;margin:0;color:#2a2318}
+#att-voile .att-rub-nom{font:600 11.5px/1 "Segoe UI",sans-serif;color:#A8722B;
+  display:flex;align-items:center;gap:8px;margin-bottom:5px}
+#att-voile .att-rub-nom::after{content:"";flex:1;height:1px;background:rgba(168,114,43,.3)}
+#att-voile .att-pellicule ul{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.42}
+#att-voile .att-pellicule li{position:relative;padding:2px 0 2px 12px;color:#3a3226}
+#att-voile .att-pellicule li::before{content:"";position:absolute;left:0;top:8.5px;width:5px;height:5px;
+  border-radius:50%;background:#bda880}
+#att-voile .att-bord{padding:7px 5px 9px;border-top:1px solid rgba(42,35,24,.26);
+  font:9.5px/1 "Consolas","Courier New",monospace;letter-spacing:2.5px;color:#9a8a63}
 
 /* ---- CLASSEMENTS — panneau lumineux de stade. Un tableau d'affichage est
        ALLUMÉ : caisson bleu vif, bandeau de titre en canard, témoin vert qui
@@ -413,18 +405,10 @@
       </div>
     </div>
 
-    <div class="att-carte att-ticket" id="att-c-culturel">
-      <div class="att-souche">
-        <span class="att-souche-mention">Une place</span>
-        <span class="att-souche-num">Nº 75008</span>
-      </div>
-      <div class="att-perf"><i></i><i></i></div>
-      <div class="att-ticket-corps">
-        <h3>Ce qui sort en ville</h3>
-        <div id="att-c-culturel-corps"></div>
-      </div>
-      <div class="att-code" aria-hidden="true"></div>
-      <div class="att-code-lib">bon pour une séance</div>
+    <div class="att-carte att-pellicule" id="att-c-culturel">
+      <div class="att-photo"><h3>Ce qui sort en ville</h3></div>
+      <div id="att-c-culturel-corps"></div>
+      <div class="att-bord">PROGRAMME 2026 · 24A · 25A</div>
     </div>
 
     <div class="att-carte att-compteur" id="att-c-compteurs">
@@ -600,11 +584,11 @@
       let html = "";
       if (rubs.length) {
         html = rubs.map(([nom, liste]) =>
-          `<div class="att-rub"><div class="att-rub-nom">${nom}</div><ul>` +
+          `<div class="att-photo"><div class="att-rub-nom">${nom}</div><ul>` +
           liste.slice(0, 3).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
           `</ul></div>`).join("");
       } else if (d.titres && d.titres.length) {
-        html = `<div class="att-rub"><div class="att-rub-nom">À l'affiche</div><ul>` +
+        html = `<div class="att-photo"><div class="att-rub-nom">À l'affiche</div><ul>` +
           d.titres.slice(0, 6).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
           `</ul></div>`;
       } else return;
