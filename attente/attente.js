@@ -112,6 +112,13 @@
   padding:10px 18px 4px;flex:0 0 auto}
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
+/* ⚠ Ces deux lignes sont INDISPENSABLES. La règle .att-carte.on display:block
+   est plus spécifique que .att-cult display:flex et l'emportait : les cartes
+   culture n'étaient pas des colonnes flexibles, donc ni la répartition des
+   titres sur la hauteur ni la toile qui remplit le cadre doré ne
+   fonctionnaient — sans qu'aucune erreur ne le signale. */
+#att-voile .att-cult.on{display:flex}
+#att-voile .att-tir.on{display:flex}
 
 /* ---- CULTURE — TROIS cartes autonomes (décision du 02/09), chacune dans la
        forme de son sujet plutôt qu'un cadre unique à trois compartiments :
@@ -316,6 +323,46 @@
 #att-voile .att-depeche i{font-style:normal;color:#a0937c;margin:0 8px}
 @keyframes att-defile{to{transform:translateX(-100%)}}
 
+/* ---- STAND DE TIR — lancé par l'icône canard posée dans le coin de la trame
+       (#att-coin). La carte se déplie plus GRANDE que les autres : c'est un
+       jeu, pas une vignette. La trame continue de se coloriser au-dessus comme
+       jauge de progression, le stand ne la remplace pas.
+       Aucun son : la radio reste la seule source audio du module. ---- */
+#att-tir-icone{width:46px;height:46px;padding:3px;border:1px solid ${C.ligne};border-radius:8px;
+  background:rgba(15,34,56,.75);cursor:pointer;display:block;line-height:0}
+#att-tir-icone svg{width:100%;height:100%;display:block}
+#att-tir-icone[hidden]{display:none}
+#att-voile .att-tir{width:min(620px,92vw);background:#0f1e2e;border:1px solid #35506b;border-radius:10px;
+  flex-direction:column;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+#att-voile .att-tir-tete{display:flex;align-items:center;gap:10px;padding:8px 12px;color:#fff;
+  background:linear-gradient(${C.canard},#2a6a72);font:600 12.5px/1 "Segoe UI",sans-serif;letter-spacing:.8px}
+#att-voile .att-tir-score{margin-left:auto;font:700 13px/1 "Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;background:rgba(0,0,0,.28);border-radius:4px;padding:3px 9px}
+#att-voile .att-tir-tete button{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);
+  color:#fff;border-radius:5px;padding:3px 9px;font:11.5px "Segoe UI",sans-serif;cursor:pointer}
+#att-voile .att-tir-scene{position:relative;flex:1;min-height:236px;overflow:hidden;cursor:crosshair;
+  background:linear-gradient(#16324a 0%,#25526b 58%,#33636c 100%)}
+#att-voile .att-tir-sol{position:absolute;left:0;right:0;bottom:0;height:24px;
+  background:linear-gradient(#33513a,#213821);border-top:1px solid #436144}
+#att-voile .att-tir-roseau{position:absolute;bottom:18px;width:2px;border-radius:2px;
+  background:linear-gradient(#4a6b46,transparent)}
+#att-voile .att-canard{position:absolute;left:0;top:0;line-height:0;will-change:transform}
+#att-voile .att-canard svg{display:block;width:100%;height:auto}
+#att-voile .att-chien{position:absolute;left:0;top:0;line-height:0;pointer-events:none;will-change:transform}
+#att-voile .att-chien svg{display:block;width:100%;height:auto}
+#att-voile .att-tir-bareme{padding:6px 12px 8px;border-top:1px solid ${C.ligne};
+  font:10.5px/1.35 "Segoe UI",sans-serif;color:${C.sourdine}}
+/* battement d'ailes : une seule animation composée par canard, trois canards
+   au plus à l'écran — coût négligeable pour le traitement qui tourne derrière */
+#att-voile .att-aile-h{transform-origin:58px 30px;animation:att-battement .40s ease-in-out infinite alternate}
+#att-voile .att-aile-b{transform-origin:58px 32px;animation:att-battement-b .40s ease-in-out infinite alternate}
+@keyframes att-battement{from{transform:rotate(-18deg)}to{transform:rotate(14deg)}}
+@keyframes att-battement-b{from{transform:rotate(14deg)}to{transform:rotate(-10deg)}}
+#att-voile .att-patte-a{transform-origin:30px 30px;animation:att-trot .28s linear infinite alternate}
+#att-voile .att-patte-b{transform-origin:62px 30px;animation:att-trot-b .28s linear infinite alternate}
+@keyframes att-trot{from{transform:rotate(-20deg)}to{transform:rotate(20deg)}}
+@keyframes att-trot-b{from{transform:rotate(20deg)}to{transform:rotate(-20deg)}}
+
 /* ---- échec ---- */
 #att-echec{position:absolute;top:0;left:0;right:0;z-index:4;display:none;align-items:center;gap:14px;
   background:${C.carmin};color:#fff;padding:10px 18px;font-size:14px}
@@ -339,6 +386,8 @@
   #att-voile .att-depeche-int{animation:none}
   #att-voile .att-od-strip,#att-voile .att-parc,#att-voile .att-aiguille,#att-voile .att-cadran-aig{transition:none}
   #att-voile .att-led-vive{animation:none}
+  #att-voile .att-aile-h,#att-voile .att-aile-b,
+  #att-voile .att-patte-a,#att-voile .att-patte-b{animation:none}
 }`;
 
   /* ---------- radios : adresses de flux EN DUR, aucun appel à /api/veille.
@@ -481,7 +530,7 @@
 
   <div class="att-cadre">
    <div class="att-corps" id="att-corps">
-  <div class="att-trame" id="att-trame"><div id="att-coin"></div></div>
+  <div class="att-trame" id="att-trame"><div id="att-coin"><button type="button" id="att-tir-icone" title="Stand de tir" aria-label="Ouvrir le stand de tir"></button></div></div>
 
   <div class="att-cartes">
     <div class="att-carte att-panneau" id="att-c-classements">
@@ -530,6 +579,16 @@
       </div>
       <div class="att-grille" id="att-grille"></div>
     </div>
+
+    <div class="att-carte att-tir" id="att-c-tir">
+      <div class="att-tir-tete">
+        <span>Stand de tir</span>
+        <span class="att-tir-score" id="att-tir-score">0 pt</span>
+        <button type="button" id="att-tir-replier">Replier</button>
+      </div>
+      <div class="att-tir-scene" id="att-tir-scene"><div class="att-tir-sol"></div></div>
+      <div class="att-tir-bareme">Colvert 1 · Souchet 2 · Sarcelle 3 · Nette rousse 5 — le chien rapporte.</div>
+    </div>
   </div>
    </div>
   </div>
@@ -550,6 +609,7 @@
 
     $("att-echec-fermer").onclick = () => { $("att-echec").classList.remove("on"); v.classList.remove("on"); };
     construireCadran();
+    construireTir();
     // le corps change de taille au fil des chargements : on re-mesure tout seul
     if (window.ResizeObserver) {
       try { new ResizeObserver(ajuster).observe($("att-corps")); } catch (e) {}
@@ -1006,6 +1066,309 @@
     const p = $("att-poste"); if (p) p.classList.remove("joue");
   }
 
+  /* ================= STAND DE TIR =================
+     Porté du voile de production de PAINT (décisions des 01 et 02/09/2026).
+     Repère commun à tous les canards : viewBox 0 0 130 64, vol vers la DROITE ;
+     le sens gauche s'obtient par un scaleX(-1) sur l'enveloppe, jamais en
+     redessinant l'oiseau.
+
+     ⚠ Coût : trois canards au plus à l'écran, déplacés en transform (donc sur
+     le compositeur) et une animation d'aile par canard. Le stand replié
+     n'exécute RIEN — la boucle d'animation s'arrête, elle ne tourne pas à vide
+     derrière une carte cachée. C'est la même exigence que pour le reste du
+     module : le traitement qui tourne derrière ne doit rien payer.
+
+     ⚠ Aucun son : la radio reste la seule source audio (décision du 01/09). */
+
+  const ESPECES = {
+    colvert: { nom: "Colvert", pts: 1, larg: 98, vit: 56,
+      tete: "#1F6B3A", teteOmbre: "#14512c", collier: true, poitrine: "#7A5334",
+      corps: "#A7ADB4", corpsOmbre: "#868D95", aile: "#7C838C", ailePointe: "#5A6169",
+      bec: "#C9A227", becLarge: 1, speculum: "#2B4E9B", croupion: "#2b3138" },
+    souchet: { nom: "Souchet", pts: 2, larg: 90, vit: 72,
+      tete: "#1E5F46", teteOmbre: "#144533", collier: false, poitrine: "#EFEDE4",
+      corps: "#9A4B25", corpsOmbre: "#7C3A1C", aile: "#8FA2B8", ailePointe: "#5E7692",
+      bec: "#33383F", becLarge: 1.9, speculum: "#2f7a4a", croupion: "#1c2126" },
+    sarcelle: { nom: "Sarcelle", pts: 3, larg: 72, vit: 96,
+      tete: "#7A4230", teteOmbre: "#5a2f21", collier: false, poitrine: "#D8CFC0",
+      corps: "#B4B9BF", corpsOmbre: "#94999F", aile: "#8E949B", ailePointe: "#6A7076",
+      bec: "#2E3338", becLarge: .8, speculum: "#2C6B4A", croupion: "#c9b268" },
+    nette: { nom: "Nette rousse", pts: 5, larg: 78, vit: 520,
+      tete: "#C7551F", teteOmbre: "#9c3f14", collier: false, poitrine: "#191A1E",
+      corps: "#E3DFD4", corpsOmbre: "#BFB9AC", aile: "#CFC8B8", ailePointe: "#8D8578",
+      bec: "#C42A2A", becLarge: 1.1, speculum: "#efe9dc", croupion: "#191A1E" },
+  };
+  // ordre de tirage des espèces communes ; la nette rousse ne passe JAMAIS par
+  // là, elle a son propre déclencheur (apparition fulgurante, à tout moment).
+  const TIRAGE = ["colvert", "colvert", "colvert", "souchet", "souchet", "sarcelle"];
+
+  /* Canard en vol, ailes déployées. Une aile basse derrière le corps, une aile
+     haute devant : c'est ce décalage qui donne le volume, un oiseau à une seule
+     aile visible se lit comme une silhouette plate. */
+  function svgCanard(e) {
+    // cerné sombre commun : sans lui, l'aile et le corps se confondent en une
+    // seule masse dès que leurs gris sont proches (constaté au rendu)
+    const t = 'stroke="rgba(8,14,20,.34)" stroke-width=".9" stroke-linejoin="round"';
+    return `<svg viewBox="0 0 130 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g class="att-aile-b">
+    <path d="M58 34 C53 43 46 53 36 61 C32 63 29 61 31 57 C36 48 44 40 55 33 Z" fill="${e.aile}" ${t}/>
+    <path d="M43 49 C39 54 35 58 32 60 C36 56 40 52 44 47 Z" fill="${e.ailePointe}"/>
+  </g>
+  <path d="M26 40 L6 33 L9 41 L4 46 L27 44 Z" fill="${e.croupion}" ${t}/>
+  <path d="M24 38 C28 27 44 22 62 23 C74 24 82 28 86 33 C88 36 86 40 81 41 C64 45 40 46 30 44 C25 43 22 41 24 38 Z"
+        fill="${e.corps}" ${t}/>
+  <path d="M30 43 C44 46 64 45 81 41 C86 40 88 36 86 33 C84 37 76 40 62 42 C48 44 36 44 30 43 Z"
+        fill="${e.corpsOmbre}"/>
+  <path d="M61 24 C72 25 80 28 86 33 C82 34 72 33 63 31 Z" fill="${e.poitrine}"/>
+  <path d="M78 27 C84 25 90 23 96 23 C104 23 110 26 110 30 C110 34 105 37 99 37 C92 37 84 34 78 32 Z"
+        fill="${e.tete}" ${t}/>
+  <path d="M96 23 C104 23 110 26 110 30 C106 29 100 27 94 26 Z" fill="${e.teteOmbre}"/>
+  ${e.collier ? '<path d="M83 26 C85 30 85 32 83 33 C81 31 81 28 83 26 Z" fill="#f2f2ef"/>' : ""}
+  <ellipse cx="${110 + e.becLarge * 3}" cy="30.5" rx="${5 + e.becLarge * 3}" ry="${2 + e.becLarge}"
+           fill="${e.bec}" ${t}/>
+  <circle cx="103" cy="27.5" r="1.9" fill="#12161c"/>
+  <circle cx="103.6" cy="27" r=".6" fill="#fff" opacity=".85"/>
+  <g class="att-aile-h">
+    <path d="M59 31 C53 23 43 13 31 6 C27 3.5 23 5 25 9 C30 17 40 26 52 32 C56 34 61 34 59 31 Z"
+          fill="${e.aile}" ${t}/>
+    <path d="M32 11 C29 8 26 6 25 5 C27 8 30 11 33 14 Z" fill="${e.ailePointe}"/>
+    <path d="M41 19 C37 15 34 12 31 9 C35 14 39 18 43 22 Z" fill="${e.ailePointe}"/>
+    <path d="M49 26 C46 23 43 20 40 17 C44 22 48 26 51 28 Z" fill="${e.ailePointe}"/>
+    <path d="M57 31 C54 29 51 26 49 24 C52 28 56 31 58 32 Z" fill="${e.speculum}"/>
+  </g>
+</svg>`;
+  }
+
+  /* Icône du coin de la trame : un canard POSÉ, immobile (décision du 01/09 —
+     pas d'animation au survol), donc un dessin différent de celui en vol. */
+  function svgIcone() {
+    const e = ESPECES.colvert;
+    return `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M6 30 C10 22 18 19 25 20 C31 21 34 24 34 27 C34 30 30 32 24 32 L9 32 C6 32 5 31 6 30 Z"
+        fill="${e.corps}"/>
+  <path d="M9 31 C16 32 26 32 31 30 C33 29 34 28 34 27 C32 29 26 30 18 30 C13 30 10 30 9 31 Z"
+        fill="${e.corpsOmbre}"/>
+  <path d="M6 30 L2 24 L4 29 L1 32 L8 31 Z" fill="${e.croupion}"/>
+  <path d="M24 20 C24 14 27 10 30 10 C33 10 35 13 35 16 C35 19 33 21 30 21 C27 21 25 21 24 20 Z"
+        fill="${e.tete}"/>
+  <path d="M29 20 C28 21 27 22 27 23 C29 22 30 21 30 20 Z" fill="#f2f2ef"/>
+  <ellipse cx="37" cy="16" rx="3.4" ry="1.7" fill="${e.bec}"/>
+  <circle cx="32" cy="14.6" r="1.4" fill="#12161c"/>
+  <path d="M14 24 C18 22 24 22 28 24 C24 27 18 27 14 24 Z" fill="${e.aile}"/>
+</svg>`;
+  }
+
+  /* Chien rapporteur : entre par la gauche au trot, va chercher le canard
+     tombé, puis sort par la droite avec l'oiseau dans la gueule. Un seul
+     canard à la fois, les autres attendent en file. */
+  function svgChien() {
+    const poil = "#C89A5B", ombre = "#A87F45", museau = "#2A2420";
+    return `<svg viewBox="0 0 96 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M72 20 C78 14 84 12 90 14 C86 17 84 21 84 25 C84 27 82 28 80 27 Z" fill="${ombre}"/>
+  <g class="att-patte-b"><path d="M58 26 L56 42 L61 42 L63 27 Z" fill="${ombre}"/></g>
+  <g class="att-patte-a"><path d="M26 26 L23 42 L28 42 L31 27 Z" fill="${ombre}"/></g>
+  <path d="M18 24 C22 17 34 14 48 15 C60 16 68 19 74 24 C76 26 74 30 70 31 C54 34 30 34 22 31 C18 30 16 27 18 24 Z"
+        fill="${poil}"/>
+  <path d="M22 31 C34 34 56 34 70 31 C74 30 76 26 74 24 C71 28 60 31 46 31 C34 31 26 31 22 31 Z"
+        fill="${ombre}"/>
+  <g class="att-patte-a"><path d="M32 27 L30 43 L35 43 L38 28 Z" fill="${poil}"/></g>
+  <g class="att-patte-b"><path d="M64 27 L62 43 L67 43 L69 28 Z" fill="${poil}"/></g>
+  <path d="M18 24 C12 20 8 14 8 8 C12 13 16 18 20 21 Z" fill="${poil}"/>
+  <path d="M72 22 C76 15 82 11 88 11 C93 11 96 14 96 18 C96 22 92 25 87 25 C81 25 76 24 72 23 Z"
+        fill="${poil}"/>
+  <ellipse cx="95" cy="19" rx="3" ry="2.2" fill="${museau}"/>
+  <circle cx="89" cy="16" r="1.5" fill="#12161c"/>
+  <path d="M78 13 C81 10 84 10 85 13 C85 18 82 21 79 20 C77 19 76 15 78 13 Z" fill="${ombre}"/>
+</svg>`;
+  }
+
+  const T = {
+    ouvert: false, score: 0, canards: [], attente: [], chien: null,
+    raf: null, dernier: 0, prochain: 0, prochainRare: 0, scene: null, L: 0, H: 0,
+  };
+
+  function tirScene() {
+    if (!T.scene) T.scene = $("att-tir-scene");
+    T.L = T.scene.clientWidth || 600;
+    T.H = T.scene.clientHeight || 236;
+    return T.scene;
+  }
+
+  /* Difficulté progressive : c'est l'avancement RÉEL de la génération qui la
+     pilote (E.pct), pas un minuteur — le stand suit donc le rythme du dossier.
+     Départ tranquille à 3,5 s entre deux canards, jusqu'à 1,2 s et trois
+     oiseaux simultanés en fin de course (décision du 02/09). */
+  function tirCadence() { return 3500 - (E.pct / 100) * 2300 + Math.random() * 700; }
+  function tirMax() { return 1 + Math.floor(E.pct / 45); }
+
+  function lacher(rare) {
+    const scene = tirScene();
+    const vivants = T.canards.filter((c) => c.etat === "vol").length;
+    if (!rare && vivants >= tirMax()) return;
+    const clef = rare ? "nette" : TIRAGE[Math.floor(Math.random() * TIRAGE.length)];
+    const e = ESPECES[clef];
+    const versDroite = Math.random() < .5;
+    const h = e.larg * 64 / 130;
+    const c = {
+      clef, e, etat: "vol", t: 0,
+      dir: versDroite ? 1 : -1,
+      x: versDroite ? -e.larg : T.L,
+      base: 14 + Math.random() * (T.H - 90 - h),
+      amp: rare ? 6 + Math.random() * 8 : 12 + Math.random() * 26,
+      puls: .7 + Math.random() * .9,
+      vit: e.vit * (1 + E.pct / 200) * (.9 + Math.random() * .25),
+      vy: 0, rot: 0, larg: e.larg, haut: h,
+      y: 0,                              // fixé juste après, avant le 1er placer()
+      el: document.createElement("div"),
+    };
+    c.el.className = "att-canard";
+    c.el.style.width = e.larg + "px";
+    c.el.innerHTML = svgCanard(e);
+    c.el.title = e.nom + " — " + e.pts + " pt" + (e.pts > 1 ? "s" : "");
+    c.el.addEventListener("pointerdown", (ev) => { ev.preventDefault(); toucher(c); });
+    scene.appendChild(c.el);
+    c.y = c.base;                      // sinon placer() écrirait translate(x, NaNpx)
+    T.canards.push(c);
+    placer(c);
+  }
+
+  function placer(c) {
+    // scaleX(-1) pour le vol vers la gauche : un seul dessin, deux sens
+    const miroir = c.dir < 0 ? " scaleX(-1)" : "";
+    c.el.style.transform = "translate(" + c.x.toFixed(1) + "px," + c.y.toFixed(1) + "px)" +
+      miroir + (c.rot ? " rotate(" + c.rot.toFixed(1) + "deg)" : "");
+  }
+
+  function toucher(c) {
+    if (c.etat !== "vol") return;
+    c.etat = "chute";
+    c.vy = 20;
+    T.score += c.e.pts;
+    $("att-tir-score").textContent = T.score + " pt" + (T.score > 1 ? "s" : "");
+    // les ailes cessent de battre : l'oiseau tombe, il ne vole plus
+    c.el.querySelectorAll(".att-aile-h,.att-aile-b").forEach((g) => { g.style.animation = "none"; });
+  }
+
+  function lancerChien(cible) {
+    const scene = tirScene();
+    const el = document.createElement("div");
+    el.className = "att-chien";
+    el.style.width = "88px";
+    el.innerHTML = svgChien();
+    scene.appendChild(el);
+    T.chien = { el, x: -95, y: T.H - 46, etat: "vient", cible, pause: 0 };
+  }
+
+  function boucleTir(ts) {
+    if (!T.ouvert) { T.raf = null; return; }
+    const dt = Math.min(60, ts - (T.dernier || ts)) / 1000;
+    T.dernier = ts;
+
+    if (ts >= T.prochain) { lacher(false); T.prochain = ts + tirCadence(); }
+    if (ts >= T.prochainRare) {
+      lacher(true);
+      T.prochainRare = ts + 30000 + Math.random() * 40000;
+    }
+
+    const sol = T.H - 26;
+    for (let i = T.canards.length - 1; i >= 0; i--) {
+      const c = T.canards[i];
+      if (c.etat === "vol") {
+        c.t += dt;
+        c.x += c.dir * c.vit * dt;
+        // trajectoire ONDULÉE, pas rectiligne (décision du 02/09)
+        c.y = c.base + Math.sin(c.t * c.puls * Math.PI) * c.amp;
+        placer(c);
+        if (c.x < -c.larg - 20 || c.x > T.L + 20) { c.el.remove(); T.canards.splice(i, 1); }
+      } else if (c.etat === "chute") {
+        c.vy += 900 * dt;                    // chute libre jusqu'en bas
+        c.y += c.vy * dt;
+        c.rot += 150 * dt;
+        if (c.y >= sol - c.haut) {
+          c.y = sol - c.haut;
+          c.rot = c.dir < 0 ? -12 : 12;
+          c.etat = "tombe";
+          T.attente.push(c);
+        }
+        placer(c);
+      } else if (c.etat === "porte" && T.chien) {
+        c.y = T.chien.y - 4;
+        c.x = T.chien.x + 62;
+        placer(c);
+      }
+    }
+
+    if (!T.chien && T.attente.length) lancerChien(T.attente.shift());
+    if (T.chien) {
+      const d = T.chien;
+      const vitChien = 190;
+      if (d.etat === "vient") {
+        d.x += vitChien * dt;
+        if (d.cible.etat !== "tombe") { d.etat = "part"; }     // canard déjà parti
+        else if (d.x >= d.cible.x - 40) { d.etat = "prend"; d.pause = .35; }
+      } else if (d.etat === "prend") {
+        d.pause -= dt;
+        if (d.pause <= 0) { d.cible.etat = "porte"; d.etat = "part"; }
+      } else {
+        d.x += vitChien * dt;
+        if (d.x > T.L + 100) {
+          if (d.cible.el) d.cible.el.remove();
+          const j = T.canards.indexOf(d.cible);
+          if (j >= 0) T.canards.splice(j, 1);
+          d.el.remove();
+          T.chien = null;
+        }
+      }
+      if (T.chien) T.chien.el.style.transform =
+        "translate(" + T.chien.x.toFixed(1) + "px," + T.chien.y.toFixed(1) + "px)";
+    }
+
+    T.raf = requestAnimationFrame(boucleTir);
+  }
+
+  function ouvrirTir() {
+    if (T.ouvert) return;
+    T.ouvert = true;
+    $("att-c-tir").classList.add("on");
+    $("att-tir-icone").hidden = true;
+    ajuster();
+    // roseaux du décor, posés une fois pour toutes
+    const scene = tirScene();
+    if (!scene.querySelector(".att-tir-roseau")) {
+      for (let i = 0; i < 14; i++) {
+        const r = document.createElement("div");
+        r.className = "att-tir-roseau";
+        r.style.left = (3 + Math.random() * 94) + "%";
+        r.style.height = (12 + Math.random() * 26) + "px";
+        scene.appendChild(r);
+      }
+    }
+    T.dernier = 0;
+    T.prochain = performance.now() + 900;
+    T.prochainRare = performance.now() + 18000 + Math.random() * 30000;
+    T.raf = requestAnimationFrame(boucleTir);
+  }
+
+  function fermerTir() {
+    T.ouvert = false;
+    if (T.raf) { cancelAnimationFrame(T.raf); T.raf = null; }
+    T.canards.forEach((c) => c.el.remove());
+    T.canards = []; T.attente = [];
+    if (T.chien) { T.chien.el.remove(); T.chien = null; }
+    const carte = $("att-c-tir");
+    if (carte) carte.classList.remove("on");
+    const ic = $("att-tir-icone");
+    if (ic) ic.hidden = false;
+    ajuster();
+  }
+
+  function construireTir() {
+    const ic = $("att-tir-icone");
+    ic.innerHTML = svgIcone();
+    ic.onclick = () => (T.ouvert ? fermerTir() : ouvrirTir());
+    $("att-tir-replier").onclick = fermerTir;
+  }
+
   /* ================= API PUBLIQUE ================= */
   function demarrer(opts) {
     opts = opts || {};
@@ -1023,6 +1386,12 @@
     poserTrame(opts.trame || null);
     v.classList.add("on");
     appliquer(0, null);
+
+    // le stand repart replié, score à zéro ; le score ne survit qu'à la
+    // génération en cours (décision du 01/09)
+    T.score = 0;
+    if ($("att-tir-score")) $("att-tir-score").textContent = "0 pt";
+    fermerTir();
 
     // l'aiguille repart au silence à chaque attente : aucune station retenue
     E.cran = 0; E.mortes = {};
@@ -1046,6 +1415,9 @@
     appliquer(100, "Terminé");
     v.classList.add("fin");
     gresillerFin();
+    // bascule immédiate sur le document même si une partie est en cours, sans
+    // écran de score ni confirmation (décision du 01/09)
+    fermerTir();
     radioArreter(); E.cran = 0; majEtat("Silence"); majCrans();  // la radio se coupe TOUJOURS à la fin
     clearInterval(E.minuterie); clearInterval(E.actusMinuterie); clearInterval(E.compteursMinuterie);
     E.on = false;
@@ -1063,7 +1435,7 @@
     $("att-echec").classList.add("on");
   }
 
-  window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
+  window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); if (T.ouvert) tirScene(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.5" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.6-stand-de-tir" };
 })();
