@@ -16,6 +16,12 @@
 // front CACHE les sections vides. L'écran d'attente est un confort, pas une
 // dépendance.
 //
+// ── v1.4 (02/09/2026) ────────────────────────────────────────────────────
+// • culturel renvoie maintenant des OBJETS { t, u } — titre et adresse de
+//   l'article — au lieu de simples chaînes : le front tronque les titres à
+//   trois lignes, il faut donc pouvoir cliquer pour lire la suite. Le front
+//   ouvre en nouvel onglet et n'accepte qu'une adresse http(s).
+//
 // ── v1.3 (02/09/2026) ────────────────────────────────────────────────────
 // • culturel renvoie désormais TROIS rubriques séparées — `cinema`, `expos`,
 //   `livres` — au lieu d'un `titres` global : la carte du front (bande de
@@ -80,6 +86,23 @@ function titresRSS(xml, max = 12) {
     }
   }
   return titres;
+}
+
+// -- Comme titresRSS, mais on garde aussi <link> : { t: titre, u: adresse }.
+// L'adresse est omise si elle n'est pas une URL http(s) — le front la
+// revalide de son côté, mais autant ne pas la transmettre du tout.
+function itemsRSS(xml, max = 12) {
+  const items = xml.match(/<item[\s>][\s\S]*?<\/item>/g) || [];
+  const sortie = [];
+  for (const it of items.slice(0, max)) {
+    const mt = it.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/);
+    if (!mt || !mt[1]) continue;
+    const ml = it.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/);
+    const t = decoderEntites(mt[1]).replace(/\s+/g, " ").trim();
+    const u = ml && ml[1] ? decoderEntites(ml[1]).replace(/\s+/g, "").trim() : "";
+    sortie.push(/^https?:\/\//i.test(u) ? { t, u } : { t });
+  }
+  return sortie;
 }
 
 // -- Actus : franceinfo + Le Monde, fusionnés en alternance pour le bandeau --
@@ -164,7 +187,7 @@ async function culturel(erreurs) {
   await Promise.all(RUBRIQUES.map(async (r) => {
     for (const c of r.candidats) {
       try {
-        const t = titresRSS(await chercher(c.url, 3500), 6);
+        const t = itemsRSS(await chercher(c.url, 3500), 6);
         if (t.length) {
           sorties[r.clef] = t.slice(0, 4);
           sorties.sources[r.clef] = c.source;
@@ -185,7 +208,7 @@ async function culturel(erreurs) {
   ];
   for (const g of globaux) {
     try {
-      const t = titresRSS(await chercher(g.url, 3500), 8);
+      const t = itemsRSS(await chercher(g.url, 3500), 8);
       if (t.length) return { source: g.source, titres: t, cinema: [], expos: [], livres: [] };
     } catch (e) { erreurs.push("culturel/repli/" + g.source + " : " + e.message); }
   }
