@@ -692,10 +692,13 @@
         $(id).classList.add("on");
         return true;
       };
+      // ⚠ 4 titres par rubrique : c'est TOUT ce que /api/veille en renvoie
+      // (itemsRSS → slice(0, 4) côté serveur). Pour en afficher davantage il
+      // faut d'abord lever cette limite dans veille.js, sinon rien ne change.
       let une = false;
-      if (poser("att-c-cinema", d.cinema || d.cinéma, 3)) une = true;
-      if (poser("att-c-arts", d.expos || d.expositions, 3)) une = true;
-      if (poser("att-c-livres", d.livres, 3)) une = true;
+      if (poser("att-c-cinema", d.cinema || d.cinéma, 4)) une = true;
+      if (poser("att-c-arts", d.expos || d.expositions, 4)) une = true;
+      if (poser("att-c-livres", d.livres, 4)) une = true;
       if (!une && d.titres && d.titres.length) {
         poser("att-c-cinema", d.titres, 4);
         $("att-c-cinema-t").textContent = "À l'affiche";
@@ -1055,5 +1058,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.3" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.4" };
 })();
