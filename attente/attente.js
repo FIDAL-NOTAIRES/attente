@@ -93,7 +93,7 @@
   transform-origin:top center;transform:scale(var(--att-z,1));transition:transform .3s ease}
 
 /* ---- trame parcellaire = jauge de fond ---- */
-#att-voile .att-trame{position:relative;width:min(1180px,94vw);flex:0 0 auto;height:17vh;
+#att-voile .att-trame{position:relative;width:min(1180px,94vw);flex:0 0 auto;height:15vh;
   display:flex;align-items:center;justify-content:center}
 #att-voile .att-trame svg{width:100%;height:100%}
 #att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
@@ -103,49 +103,65 @@
 /* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
        corps qui absorbe le manque de place. ---- */
 #att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
-  padding:10px 18px 4px;max-width:1560px;flex:0 0 auto}
+  padding:10px 18px 4px;max-width:1680px;flex:0 0 auto}
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
 
-/* ---- CULTURE — bande de pellicule 35 mm. Un billet de cinéma est large et
-       court ; cette carte est haute et étroite, donc elle ne se lira jamais
-       comme un billet. La pellicule, elle, EST verticale, et son signe
-       distinctif — les perforations sur les deux bords — tombe pile sur cette
-       géométrie. Chaque rubrique occupe un photogramme. Les trous sont peints
-       en couleur de fond : le voile étant un aplat uni, ils se lisent comme de
-       vraies perforations, sans mask-composite. ---- */
-#att-voile .att-pellicule{width:300px;background:#EDE2CB;color:#2a2318;border-radius:2px;
-  padding:0 22px 0;box-shadow:0 8px 22px rgba(0,0,0,.45)}
-#att-voile .att-pellicule::before,
-#att-voile .att-pellicule::after{content:"";position:absolute;top:0;bottom:0;width:22px;
+/* ---- CULTURE — TROIS cartes autonomes (décision du 02/09), chacune dans la
+       forme de son sujet plutôt qu'un cadre unique à trois compartiments :
+         • cinéma → bande de pellicule 35 mm, perforations sur les deux bords
+         • arts   → cadre doré et sa plaque de musée
+         • livres → volume relié, dos toilé à gauche, tranche de pages à droite
+       Les perforations et les trous sont peints en couleur de voile : l'aplat
+       uni du fond fait le reste, sans mask-composite. ---- */
+#att-voile .att-cult{width:212px;font-size:12.5px}
+#att-voile .att-cult h3{margin:0 0 6px;font:600 11.5px/1 "Segoe UI",sans-serif;
+  display:flex;align-items:center;gap:7px}
+#att-voile .att-cult h3::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
+#att-voile .att-cult ul{margin:0;padding:0;list-style:none;line-height:1.4}
+#att-voile .att-cult li{position:relative;padding:3px 0 3px 11px;color:#3a3226;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#att-voile .att-cult li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;
+  border-radius:50%;background:#b5a483}
+
+/* cinéma — bande de pellicule */
+#att-voile .att-film{background:#EDE2CB;color:#2a2318;border-radius:2px;padding:11px 18px 12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.42)}
+#att-voile .att-film::before,
+#att-voile .att-film::after{content:"";position:absolute;top:0;bottom:0;width:18px;
   background-color:#E0D2B4;
-  background-image:linear-gradient(${C.nuit} 0 7px,transparent 7px);
-  background-size:12px 15px;background-position:5px 7px;background-repeat:repeat-y}
-#att-voile .att-pellicule::before{left:0;box-shadow:inset -1px 0 0 rgba(42,35,24,.16)}
-#att-voile .att-pellicule::after{right:0;box-shadow:inset 1px 0 0 rgba(42,35,24,.16)}
-/* trois cadres distincts : chaque rubrique est un photogramme encadre, avec
-   son accent de couleur au bord gauche. Une pellicule, c'est justement une
-   suite de cadres — autant que le dessin le dise. */
-#att-voile .att-photo{position:relative;margin:7px 0;padding:7px 9px;background:#F5EEDE;
-  border:1px solid rgba(42,35,24,.2);border-left-width:3px;border-radius:2px}
-#att-voile .att-photo.cinema{border-left-color:${C.carmin}}
-#att-voile .att-photo.arts{border-left-color:${C.canard}}
-#att-voile .att-photo.livres{border-left-color:${C.laiton}}
-#att-voile .att-photo-titre{margin:0;padding:10px 4px 2px;background:none;border:0}
-#att-voile .att-pellicule h3{font-family:Georgia,serif;font-size:16px;font-weight:700;margin:0;color:#2a2318}
-#att-voile .att-rub-nom{font:600 11.5px/1 "Segoe UI",sans-serif;color:#8a7a5c;
-  display:flex;align-items:center;gap:8px;margin-bottom:5px}
-#att-voile .att-rub-nom::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
-#att-voile .att-photo.cinema .att-rub-nom{color:${C.carmin}}
-#att-voile .att-photo.arts .att-rub-nom{color:#2a6a72}
-#att-voile .att-photo.livres .att-rub-nom{color:#8a6b3d}
-#att-voile .att-pellicule ul{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.42}
-#att-voile .att-pellicule li{position:relative;padding:2px 0 2px 12px;color:#3a3226;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#att-voile .att-pellicule li::before{content:"";position:absolute;left:0;top:8.5px;width:5px;height:5px;
-  border-radius:50%;background:#bda880}
-#att-voile .att-bord{padding:7px 5px 9px;border-top:1px solid rgba(42,35,24,.26);
+  background-image:linear-gradient(${C.nuit} 0 6px,transparent 6px);
+  background-size:10px 13px;background-position:4px 6px;background-repeat:repeat-y}
+#att-voile .att-film::before{left:0;box-shadow:inset -1px 0 0 rgba(42,35,24,.16)}
+#att-voile .att-film::after{right:0;box-shadow:inset 1px 0 0 rgba(42,35,24,.16)}
+#att-voile .att-film h3{color:${C.carmin}}
+#att-voile .att-bord{margin-top:9px;padding-top:6px;border-top:1px solid rgba(42,35,24,.24);
   font:9.5px/1 "Consolas","Courier New",monospace;letter-spacing:2.5px;color:#9a8a63}
+
+/* arts — cadre doré, toile, plaque de musée. Pas de titre dans la toile :
+   c'est la plaque qui nomme la rubrique, comme au mur d'un musée. */
+#att-voile .att-cadre-or{padding:8px;border-radius:3px;
+  background:linear-gradient(135deg,#c9a862,#8a6b3d 42%,#d8bb78 52%,#7d6034);
+  box-shadow:0 8px 20px rgba(0,0,0,.45)}
+#att-voile .att-toile{background:#F3EBDA;color:#2a2318;padding:10px 11px 11px;
+  box-shadow:inset 0 0 0 1px rgba(42,35,24,.3),inset 0 3px 12px rgba(0,0,0,.1)}
+#att-voile .att-plaque{margin:8px auto 0;width:-moz-fit-content;width:fit-content;padding:2px 11px;
+  border-radius:2px;background:linear-gradient(#e0c583,#a9873f);color:#3a2c12;
+  font:600 9px/1.5 "Segoe UI",sans-serif;letter-spacing:2.5px;
+  box-shadow:inset 0 0 0 1px rgba(58,44,18,.35)}
+
+/* livres — volume relié : dos toilé et ses filets dorés à gauche, tranche de
+   pages suggérée à droite par des ombres internes empilées. */
+#att-voile .att-livre{background:#F1E9D8;color:#2a2318;padding:11px 15px 12px 27px;
+  border-radius:2px 8px 8px 2px;
+  box-shadow:0 8px 20px rgba(0,0,0,.45),
+    inset -2px 0 0 rgba(42,35,24,.13),inset -4px 0 0 rgba(255,255,255,.75),
+    inset -6px 0 0 rgba(42,35,24,.1),inset -8px 0 0 rgba(255,255,255,.6)}
+#att-voile .att-livre::before{content:"";position:absolute;left:0;top:0;bottom:0;width:18px;
+  border-radius:2px 0 0 2px;background:linear-gradient(90deg,#245c63,${C.canard} 55%,#1f4f56)}
+#att-voile .att-livre::after{content:"";position:absolute;left:3px;top:9px;bottom:9px;width:12px;
+  background:repeating-linear-gradient(to bottom,${C.laiton} 0 1px,transparent 1px 8px);opacity:.6}
+#att-voile .att-livre h3{color:#8a6b3d}
 
 /* ---- CLASSEMENTS — panneau lumineux de stade. Un tableau d'affichage est
        ALLUMÉ : caisson bleu vif, bandeau de titre en canard, témoin vert qui
@@ -255,20 +271,28 @@
 #att-voile .att-temoin{display:inline-block;width:7px;height:7px;border-radius:50%;background:#43596d;margin-right:6px}
 #att-voile .att-poste.joue .att-temoin{background:${C.orange};box-shadow:0 0 8px ${C.orange}}
 
-/* ---- ACTUS — bande de dépêche d'agence : papier, bord déchiré, téléscripteur ---- */
-#att-voile .att-depeche{width:100%;flex:0 0 auto;position:relative;display:none;
-  background:${C.papier};color:${C.papierEncre};padding:9px 0 8px;
-  box-shadow:0 -6px 20px rgba(0,0,0,.45)}
+/* ---- ACTUS — bande de dépêche d'agence, désormais EN TÊTE du voile (02/09) :
+       en pied elle était le dernier élément et se faisait rogner par le bas de
+       l'écran. Le bord déchiré passe donc en dessous, comme une bande de papier
+       qui pend. Une étiquette carmin fixe à gauche nomme le fil ; le texte
+       défile derrière elle. Défilement volontairement lent : on doit pouvoir
+       lire un titre entier sans le suivre des yeux. ---- */
+#att-voile .att-depeche{width:100%;flex:0 0 auto;position:relative;display:none;z-index:1;
+  background:${C.papier};color:${C.papierEncre};padding:11px 0 10px;
+  box-shadow:0 6px 20px rgba(0,0,0,.45);overflow:hidden}
 #att-voile .att-depeche.on{display:block}
-#att-voile .att-depeche::before{content:"";position:absolute;left:0;right:0;top:-7px;height:8px;
+#att-voile .att-depeche::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:9px;
   background:
-    linear-gradient(-45deg,${C.papier} 4px,transparent 0) 0 100%/13px 8px repeat-x,
-    linear-gradient(45deg,${C.papier} 4px,transparent 0) 0 100%/13px 8px repeat-x}
+    linear-gradient(-135deg,${C.papier} 4.5px,transparent 0) 0 0/14px 9px repeat-x,
+    linear-gradient(135deg,${C.papier} 4.5px,transparent 0) 0 0/14px 9px repeat-x}
+#att-voile .att-depeche-etiq{position:absolute;left:0;top:0;bottom:0;z-index:2;display:flex;
+  align-items:center;padding:0 16px;background:${C.carmin};color:${C.papier};
+  font:600 11px/1 "Segoe UI",sans-serif;letter-spacing:2.5px}
 #att-voile .att-depeche-int{display:inline-block;padding-left:100vw;white-space:nowrap;
-  font:13px/1.3 "Consolas","Courier New",monospace;letter-spacing:.2px;
-  animation:att-defile var(--att-dur,90s) linear infinite;will-change:transform}
-#att-voile .att-depeche b{color:${C.carmin};font-weight:700;margin:0 9px 0 30px}
-#att-voile .att-depeche i{font-style:normal;color:#9a8f7c;margin:0 6px}
+  font:15px/1.35 "Consolas","Courier New",monospace;
+  animation:att-defile var(--att-dur,150s) linear infinite;will-change:transform}
+#att-voile .att-depeche b{color:${C.carmin};font-weight:700;margin:0 10px 0 34px}
+#att-voile .att-depeche i{font-style:normal;color:#a0937c;margin:0 8px}
 @keyframes att-defile{to{transform:translateX(-100%)}}
 
 /* ---- échec ---- */
@@ -414,6 +438,11 @@
     v.innerHTML = `
   <div id="att-echec"><span id="att-echec-msg"></span><button id="att-echec-fermer">Masquer l'écran d'attente</button></div>
 
+  <div class="att-depeche" id="att-depeche">
+    <span class="att-depeche-etiq">FIL D'ACTUALITÉ</span>
+    <div class="att-depeche-int" id="att-depeche-int"></div>
+  </div>
+
   <div class="att-haut">
     <div class="att-logo">FIDAL NOTAIRES</div>
     <div class="att-titre" id="att-titre">Génération en cours</div>
@@ -442,10 +471,20 @@
       </div>
     </div>
 
-    <div class="att-carte att-pellicule" id="att-c-culturel">
-      <div class="att-photo att-photo-titre"><h3>Ce qui sort en ville</h3></div>
-      <div id="att-c-culturel-corps"></div>
-      <div class="att-bord">PROGRAMME 2026 · 24A · 25A</div>
+    <div class="att-carte att-cult att-film" id="att-c-cinema">
+      <h3 id="att-c-cinema-t">Au cinéma</h3>
+      <ul id="att-c-cinema-l"></ul>
+      <div class="att-bord">24A · 25A · 26A</div>
+    </div>
+
+    <div class="att-carte att-cult att-cadre-or" id="att-c-arts">
+      <div class="att-toile"><ul id="att-c-arts-l"></ul></div>
+      <div class="att-plaque">ARTS</div>
+    </div>
+
+    <div class="att-carte att-cult att-livre" id="att-c-livres">
+      <h3 id="att-c-livres-t">Livres</h3>
+      <ul id="att-c-livres-l"></ul>
     </div>
 
     <div class="att-carte att-compteur" id="att-c-compteurs">
@@ -481,9 +520,7 @@
       <span><span class="att-temoin"></span><span id="att-poste-etat">Silence</span></span>
       <span>Glissez l'aiguille ou cliquez une station</span>
     </div>
-  </div>
-
-  <div class="att-depeche" id="att-depeche"><div class="att-depeche-int" id="att-depeche-int"></div></div>`;
+  </div>`;
     document.body.appendChild(v);
 
     $("att-echec-fermer").onclick = () => { $("att-echec").classList.remove("on"); v.classList.remove("on"); };
@@ -591,7 +628,7 @@
       const html = d.titres.map((x) => `<b>${echap(x.s)}</b>${echap(x.t)}<i>◆</i>`).join("");
       const int = $("att-depeche-int");
       int.innerHTML = html;
-      int.style.setProperty("--att-dur", Math.max(60, d.titres.length * 7) + "s");
+      int.style.setProperty("--att-dur", Math.max(150, d.titres.length * 14) + "s");
       $("att-depeche").classList.add("on");
     }).catch(() => {});
   }
@@ -615,29 +652,28 @@
     }).catch(() => {});
   }
 
-  /* Culturel : les TROIS rubriques ensemble à chaque session (décision du
-     01/09). Si /api/veille renvoie encore un simple d.titres, on retombe sur
-     une rubrique unique plutôt que de cacher la carte. */
+  /* Culturel : les trois rubriques dans TROIS cartes autonomes (02/09). Chacune
+     apparaît seulement si sa rubrique a des données — une source muette laisse
+     simplement une carte en moins, jamais un cadre vide. Repli conservé : si
+     /api/veille ne renvoie qu'un `titres` global, on le verse dans la pellicule
+     sous l'intitulé « À l'affiche ». */
   function chargerCulturel() {
     veille("culturel").then((d) => {
-      const rubs = [
-        ["Au cinéma", d.cinema || d.cinéma, "cinema"],
-        ["Arts", d.expos || d.expositions, "arts"],
-        ["Livres", d.livres, "livres"],
-      ].filter((r) => Array.isArray(r[1]) && r[1].length);
-      let html = "";
-      if (rubs.length) {
-        html = rubs.map(([nom, liste, cl]) =>
-          `<div class="att-photo ${cl}"><div class="att-rub-nom">${nom}</div><ul>` +
-          liste.slice(0, 2).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
-          `</ul></div>`).join("");
-      } else if (d.titres && d.titres.length) {
-        html = `<div class="att-photo cinema"><div class="att-rub-nom">À l'affiche</div><ul>` +
-          d.titres.slice(0, 5).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
-          `</ul></div>`;
-      } else return;
-      $("att-c-culturel-corps").innerHTML = html;
-      $("att-c-culturel").classList.add("on");
+      const poser = (id, liste, max) => {
+        if (!Array.isArray(liste) || !liste.length) return false;
+        $(id + "-l").innerHTML = liste.slice(0, max)
+          .map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("");
+        $(id).classList.add("on");
+        return true;
+      };
+      let une = false;
+      if (poser("att-c-cinema", d.cinema || d.cinéma, 2)) une = true;
+      if (poser("att-c-arts", d.expos || d.expositions, 2)) une = true;
+      if (poser("att-c-livres", d.livres, 2)) une = true;
+      if (!une && d.titres && d.titres.length) {
+        poser("att-c-cinema", d.titres, 4);
+        $("att-c-cinema-t").textContent = "À l'affiche";
+      }
       ajuster();
     }).catch(() => {});
   }
@@ -993,5 +1029,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.6" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.8-fil-en-tete" };
 })();
