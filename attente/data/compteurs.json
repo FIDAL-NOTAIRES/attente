@@ -1,105 +1,19 @@
-
-Compteurs · JSON
 {
   "note": "Chiffres INDICATIFS pour écran d'attente — bases arrondies mi-2026, taux moyens lissés par seconde. Mettre à jour la base et la date `reference` à chaque publication d'institut (INSEE, Eurostat, ONU, Trésors nationaux) ; le client extrapole base + taux × secondes écoulées depuis `reference`.",
   "choixDesPays": "DOUZE pays, soit 4 colonnes × 3 lignes dans la grille du front — ni dix ni onze, qui laisseraient une ligne bancale. Sélection faite pour le CONTRASTE des tendances plutôt que pour le seul poids économique : sans pays à population déclinante ni à dette qui reflue, les vingt-quatre flèches pointeraient dans le même sens et le code couleur ne dirait plus rien. D'où le Nigeria (croissance la plus rapide, le compteur d'habitants y file), l'Irlande (SEUL pays de la liste dont la dette recule, donc la seule flèche verte côté dette) et le Brésil (quatrième pays le plus peuplé absent de toutes ces cartes). Population en baisse : Allemagne, Italie, Chine, Japon.",
   "reference": "2026-07-01T00:00:00Z",
   "pays": [
-    {
-      "nom": "France",
-      "population": 68450000,
-      "popParSec": 0.0044,
-      "dette": 3350000000000,
-      "detteParSec": 5100,
-      "devise": "€"
-    },
-    {
-      "nom": "Allemagne",
-      "population": 84500000,
-      "popParSec": -0.001,
-      "dette": 2720000000000,
-      "detteParSec": 2300,
-      "devise": "€"
-    },
-    {
-      "nom": "Italie",
-      "population": 58600000,
-      "popParSec": -0.0095,
-      "dette": 3020000000000,
-      "detteParSec": 2700,
-      "devise": "€"
-    },
-    {
-      "nom": "Espagne",
-      "population": 48800000,
-      "popParSec": 0.013,
-      "dette": 1640000000000,
-      "detteParSec": 1700,
-      "devise": "€"
-    },
-    {
-      "nom": "Irlande",
-      "population": 5400000,
-      "popParSec": 0.0019,
-      "dette": 218000000000,
-      "detteParSec": -95,
-      "devise": "€"
-    },
-    {
-      "nom": "Royaume-Uni",
-      "population": 68600000,
-      "popParSec": 0.016,
-      "dette": 2920000000000,
-      "detteParSec": 4200,
-      "devise": "£"
-    },
-    {
-      "nom": "États-Unis",
-      "population": 342500000,
-      "popParSec": 0.051,
-      "dette": 37600000000000,
-      "detteParSec": 63000,
-      "devise": "$"
-    },
-    {
-      "nom": "Brésil",
-      "population": 213000000,
-      "popParSec": 0.027,
-      "dette": 8000000000000,
-      "detteParSec": 25300,
-      "devise": "R$"
-    },
-    {
-      "nom": "Nigeria",
-      "population": 237000000,
-      "popParSec": 0.18,
-      "dette": 152000000000,
-      "detteParSec": 1200,
-      "devise": "$"
-    },
-    {
-      "nom": "Chine",
-      "population": 1408000000,
-      "popParSec": -0.044,
-      "dette": 13800000000000,
-      "detteParSec": 41000,
-      "devise": "$"
-    },
-    {
-      "nom": "Inde",
-      "population": 1454000000,
-      "popParSec": 0.35,
-      "dette": 2650000000000,
-      "detteParSec": 8500,
-      "devise": "$"
-    },
-    {
-      "nom": "Japon",
-      "population": 123100000,
-      "popParSec": -0.019,
-      "dette": 1315000000000000,
-      "detteParSec": 190000,
-      "devise": "¥"
-    }
+    { "nom": "France",      "population": 68450000,   "popParSec": 0.0044,  "dette": 3350000000000,    "detteParSec": 5100,   "devise": "€" },
+    { "nom": "Allemagne",   "population": 84500000,   "popParSec": -0.001,  "dette": 2720000000000,    "detteParSec": 2300,   "devise": "€" },
+    { "nom": "Italie",      "population": 58600000,   "popParSec": -0.0095, "dette": 3020000000000,    "detteParSec": 2700,   "devise": "€" },
+    { "nom": "Espagne",     "population": 48800000,   "popParSec": 0.013,   "dette": 1640000000000,    "detteParSec": 1700,   "devise": "€" },
+    { "nom": "Irlande",     "population": 5400000,    "popParSec": 0.0019,  "dette": 218000000000,     "detteParSec": -95,    "devise": "€" },
+    { "nom": "Royaume-Uni", "population": 68600000,   "popParSec": 0.016,   "dette": 2920000000000,    "detteParSec": 4200,   "devise": "£" },
+    { "nom": "États-Unis",  "population": 342500000,  "popParSec": 0.051,   "dette": 37600000000000,   "detteParSec": 63000,  "devise": "$" },
+    { "nom": "Brésil",      "population": 213000000,  "popParSec": 0.027,   "dette": 8000000000000,    "detteParSec": 25300,  "devise": "R$" },
+    { "nom": "Nigeria",     "population": 237000000,  "popParSec": 0.18,    "dette": 152000000000,     "detteParSec": 1200,   "devise": "$" },
+    { "nom": "Chine",       "population": 1408000000, "popParSec": -0.044,  "dette": 13800000000000,   "detteParSec": 41000,  "devise": "$" },
+    { "nom": "Inde",        "population": 1454000000, "popParSec": 0.35,    "dette": 2650000000000,    "detteParSec": 8500,   "devise": "$" },
+    { "nom": "Japon",       "population": 123100000,  "popParSec": -0.019,  "dette": 1315000000000000, "detteParSec": 190000, "devise": "¥" }
   ]
 }
