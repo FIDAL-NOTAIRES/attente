@@ -102,7 +102,7 @@
 
 /* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
        corps qui absorbe le manque de place. ---- */
-#att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
+#att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-end;
   padding:10px 18px 4px;max-width:1680px;flex:0 0 auto}
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
@@ -123,6 +123,12 @@
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 #att-voile .att-cult li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;
   border-radius:50%;background:#b5a483}
+/* le titre tronqué est cliquable : l'article s'ouvre dans un NOUVEL onglet,
+   jamais dans celui-ci — un clic qui quitterait la page tuerait la génération
+   qui tourne derrière le voile. */
+#att-voile .att-cult a{color:inherit;text-decoration:none;cursor:pointer}
+#att-voile .att-cult a:hover{text-decoration:underline;text-decoration-color:${C.carmin}}
+#att-voile .att-cult a:focus-visible{outline:2px solid ${C.carmin};outline-offset:2px}
 
 /* cinéma — bande de pellicule */
 #att-voile .att-film{background:#EDE2CB;color:#2a2318;border-radius:2px;padding:11px 18px 12px;
@@ -135,20 +141,16 @@
 #att-voile .att-film::before{left:0;box-shadow:inset -1px 0 0 rgba(42,35,24,.16)}
 #att-voile .att-film::after{right:0;box-shadow:inset 1px 0 0 rgba(42,35,24,.16)}
 #att-voile .att-film h3{color:${C.carmin}}
-#att-voile .att-bord{margin-top:9px;padding-top:6px;border-top:1px solid rgba(42,35,24,.24);
-  font:9.5px/1 "Consolas","Courier New",monospace;letter-spacing:2.5px;color:#9a8a63}
 
-/* arts — cadre doré, toile, plaque de musée. Pas de titre dans la toile :
-   c'est la plaque qui nomme la rubrique, comme au mur d'un musée. */
+/* arts — cadre doré et toile en léger creux. Le titre est en tête, comme sur
+   les deux autres cartes : la plaque de musée en pied était plus jolie mais
+   désalignait les trois intitulés. */
 #att-voile .att-cadre-or{padding:8px;border-radius:3px;
   background:linear-gradient(135deg,#c9a862,#8a6b3d 42%,#d8bb78 52%,#7d6034);
   box-shadow:0 8px 20px rgba(0,0,0,.45)}
 #att-voile .att-toile{background:#F3EBDA;color:#2a2318;padding:10px 11px 11px;
   box-shadow:inset 0 0 0 1px rgba(42,35,24,.3),inset 0 3px 12px rgba(0,0,0,.1)}
-#att-voile .att-plaque{margin:8px auto 0;width:-moz-fit-content;width:fit-content;padding:2px 11px;
-  border-radius:2px;background:linear-gradient(#e0c583,#a9873f);color:#3a2c12;
-  font:600 9px/1.5 "Segoe UI",sans-serif;letter-spacing:2.5px;
-  box-shadow:inset 0 0 0 1px rgba(58,44,18,.35)}
+#att-voile .att-toile h3{color:#2a6a72}
 
 /* livres — volume relié : dos toilé et ses filets dorés à gauche, tranche de
    pages suggérée à droite par des ombres internes empilées. */
@@ -202,7 +204,6 @@
   box-shadow:0 4px 16px rgba(0,0,0,.4)}
 #att-voile .att-compteur .att-comp-haut{display:flex;align-items:center;gap:11px;margin-bottom:10px}
 #att-voile .att-compteur h3{font-family:Georgia,serif;font-size:15px;font-weight:700;margin:0;color:${C.cyan}}
-#att-voile .att-compteur .att-comp-h-sous{font-size:11.5px;color:${C.sourdine}}
 #att-voile .att-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(163px,1fr));gap:8px 13px}
 #att-voile .att-pays{border-top:1px solid rgba(255,255,255,.09);padding-top:6px}
 #att-voile .att-pays-tete{display:flex;align-items:center;gap:7px;margin-bottom:3px}
@@ -340,7 +341,13 @@
     cran: 0, ratio: 0, glisse: false, mortes: {},
   };
   const $ = (id) => document.getElementById(id);
-  const echap = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // ⚠ les guillemets et apostrophes sont échappés aussi : depuis la v1.9 on
+  // écrit des attributs (href, title) avec des données de flux RSS.
+  const echap = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  // n'accepte qu'une adresse http(s) : un flux compromis ne doit pas pouvoir
+  // glisser un javascript: dans un href.
+  const lien = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "");
 
   /* ================= DRAPEAUX =================
      Dessinés en SVG, sans dépendance : les émojis drapeaux ne s'affichent pas
@@ -474,12 +481,13 @@
     <div class="att-carte att-cult att-film" id="att-c-cinema">
       <h3 id="att-c-cinema-t">Au cinéma</h3>
       <ul id="att-c-cinema-l"></ul>
-      <div class="att-bord">24A · 25A · 26A</div>
     </div>
 
     <div class="att-carte att-cult att-cadre-or" id="att-c-arts">
-      <div class="att-toile"><ul id="att-c-arts-l"></ul></div>
-      <div class="att-plaque">ARTS</div>
+      <div class="att-toile">
+        <h3 id="att-c-arts-t">Arts</h3>
+        <ul id="att-c-arts-l"></ul>
+      </div>
     </div>
 
     <div class="att-carte att-cult att-livre" id="att-c-livres">
@@ -498,10 +506,7 @@
           <path class="att-cadran-aig" id="att-cadran-aig" d="M21 21L21 8" stroke="${C.orange}" stroke-width="1.8" stroke-linecap="round"/>
           <circle cx="21" cy="21" r="2.3" fill="${C.laiton}"/>
         </svg>
-        <div>
-          <h3>Pendant ce temps, dans le monde</h3>
-          <div class="att-comp-h-sous">Estimées seconde par seconde. La flèche donne le sens, sa couleur dit si c'est bon signe.</div>
-        </div>
+        <h3>Pendant ce temps, dans le monde</h3>
       </div>
       <div class="att-grille" id="att-grille"></div>
     </div>
@@ -661,8 +666,16 @@
     veille("culturel").then((d) => {
       const poser = (id, liste, max) => {
         if (!Array.isArray(liste) || !liste.length) return false;
-        $(id + "-l").innerHTML = liste.slice(0, max)
-          .map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("");
+        $(id + "-l").innerHTML = liste.slice(0, max).map((x) => {
+          const t = typeof x === "string" ? x : (x && x.t) || "";
+          const u = typeof x === "string" ? "" : lien(x && x.u);
+          const inner = u
+            ? `<a href="${echap(u)}" target="_blank" rel="noopener noreferrer">${echap(t)}</a>`
+            : echap(t);
+          // title= porte le titre ENTIER : les lignes sont tronquées à trois
+          // lignes, le survol rend le reste lisible sans quitter l'écran.
+          return `<li title="${echap(t)}">${inner}</li>`;
+        }).join("");
         $(id).classList.add("on");
         return true;
       };
@@ -1029,5 +1042,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.8-fil-en-tete" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.9-liens" };
 })();
