@@ -16,6 +16,13 @@
 // front CACHE les sections vides. L'écran d'attente est un confort, pas une
 // dépendance.
 //
+// ── v1.5 (02/09/2026) ────────────────────────────────────────────────────
+// • compteurs.json est lu dans un try/catch, avec une seconde voie par fs si
+//   le require échoue : ce require nu était la SEULE instruction du fichier
+//   capable de faire échouer le chargement du module, donc de renvoyer 500
+//   sur les quatre types d'un coup (incident du jour). Voir le commentaire
+//   au-dessus de la lecture.
+//
 // ── v1.4 (02/09/2026) ────────────────────────────────────────────────────
 // • culturel renvoie maintenant des OBJETS { t, u } — titre et adresse de
 //   l'article — au lieu de simples chaînes : le front tronque les titres à
@@ -215,10 +222,44 @@ async function culturel(erreurs) {
   return { source: null, titres: [], cinema: [], expos: [], livres: [] };
 }
 
-// -- Compteurs : bases + taux par seconde, fichier statique du dépôt. Le
-// client extrapole (base + taux × secondes écoulées) : la base ne bouge qu'à
-// chaque publication d'institut, d'où les 7 jours — et zéro source externe.
-const COMPTEURS = require("../data/compteurs.json");
+/* -- Compteurs : bases + taux par seconde, fichier statique du dépôt. Le
+   client extrapole (base + taux × secondes écoulées) : la base ne bouge qu'à
+   chaque publication d'institut, d'où les 7 jours — et zéro source externe.
+
+   ⚠ LECTURE PROTÉGÉE (v1.5, après incident du 02/09/2026). Un `require` nu au
+   niveau du module se paie très cher : une seule virgule de trop dans
+   compteurs.json et le module entier refuse de se charger, donc /api/veille
+   renvoie 500 pour TOUS les types — les actus, les classements et le culturel
+   tombent avec lui, alors qu'ils n'ont rien à voir avec ce fichier. C'est
+   exactement le contraire du principe posé le 29/08 : une source en panne ne
+   doit jamais faire tomber les autres. Le fichier est donc lu dans un
+   try/catch, et un JSON cassé ne coûte plus que la carte des compteurs. */
+let COMPTEURS = null, COMPTEURS_ERREUR = null;
+(function lireCompteurs() {
+  // Voie 1 : require. C'est aussi elle qui signale au bundler de Vercel qu'il
+  // doit embarquer le JSON dans le paquet déployé — donc on la garde en
+  // premier même si elle échoue, sinon le fichier ne serait pas déployé.
+  try {
+    COMPTEURS = require("../data/compteurs.json");
+  } catch (e) {
+    COMPTEURS_ERREUR = "require : " + e.message;
+    // Voie 2 : lecture directe sur le disque de la fonction. Sert quand le
+    // JSON est bien présent mais que le require échoue (chemin résolu
+    // autrement, module introuvable dans le paquet…).
+    try {
+      const fs = require("fs"), chemin = require("path");
+      COMPTEURS = JSON.parse(fs.readFileSync(
+        chemin.join(__dirname, "..", "data", "compteurs.json"), "utf8"));
+      COMPTEURS_ERREUR = null;
+    } catch (e2) {
+      COMPTEURS_ERREUR += " | lecture directe : " + e2.message;
+    }
+  }
+  if (COMPTEURS && !Array.isArray(COMPTEURS.pays)) {
+    COMPTEURS = null;
+    COMPTEURS_ERREUR = "compteurs.json : pas de tableau `pays`";
+  }
+})();
 
 module.exports = async (req, res) => {
   // CORS ouvert : le module est consommé depuis PAINT et les autres outils,
@@ -244,7 +285,10 @@ module.exports = async (req, res) => {
     if (type === "actus")            donnees = { titres: await actus(erreurs) };
     else if (type === "classements") donnees = await classements(erreurs);
     else if (type === "culturel")    donnees = await culturel(erreurs);
-    else if (type === "compteurs")   donnees = COMPTEURS;
+    else if (type === "compteurs") {
+      if (COMPTEURS) donnees = COMPTEURS;
+      else { erreurs.push(COMPTEURS_ERREUR || "compteurs indisponibles"); donnees = { pays: [] }; }
+    }
   } catch (e) {
     erreurs.push(type + " : " + e.message);
     donnees = {};
