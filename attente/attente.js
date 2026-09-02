@@ -211,23 +211,29 @@
   box-shadow:0 4px 16px rgba(0,0,0,.4)}
 #att-voile .att-compteur .att-comp-haut{display:flex;align-items:center;gap:11px;margin-bottom:10px}
 #att-voile .att-compteur h3{font-family:Georgia,serif;font-size:15px;font-weight:700;margin:0;color:${C.cyan}}
-#att-voile .att-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:8px 13px}
-#att-voile .att-pays{border-top:1px solid rgba(255,255,255,.09);padding-top:6px}
+/* ⚠ TROIS colonnes, pas quatre. En quatre, les cellules tombaient à 158 px
+   alors que la ligne « dette » du Japon en réclame près de 200 (seize chiffres
+   et cinq séparateurs pour 1 316 044 015 411 070 ¥) : le contenu débordait et
+   poussait la flèche de tendance dans la cellule du pays voisin. La carte
+   garde sa largeur, elle prend juste une ligne de plus. */
+#att-voile .att-grille{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 13px}
+#att-voile .att-pays{border-top:1px solid rgba(255,255,255,.09);padding-top:6px;min-width:0}
 #att-voile .att-pays-tete{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 #att-voile .att-pays-tete svg{width:21px;height:14px;border-radius:1.5px;flex:0 0 auto;
   box-shadow:0 0 0 1px rgba(255,255,255,.22)}
 #att-voile .att-pays-nom{font-size:12px;color:${C.encre};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #att-voile .att-pays-code{display:inline-flex;align-items:center;justify-content:center;width:21px;height:14px;
   border-radius:1.5px;background:${C.canard};color:#fff;font:600 8.5px/1 "Segoe UI",sans-serif;flex:0 0 auto}
-#att-voile .att-ligne{display:flex;align-items:baseline;gap:6px}
+#att-voile .att-ligne{display:flex;align-items:baseline;gap:6px;min-width:0}
 #att-voile .att-ligne-lib{font-size:10.5px;color:${C.sourdine};width:26px;flex:0 0 auto}
 
 /* tambours : vitre sombre, chiffre fixe en clair, chiffres roulants en jaune */
 #att-voile .att-vitre{display:inline-flex;align-items:center;background:#08131e;border:1px solid #2a3b4c;
-  border-radius:3px;padding:1px 4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.8)}
+  border-radius:3px;padding:1px 4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.8);
+  min-width:0;overflow:hidden}
 #att-voile .att-od-val{display:flex;overflow:hidden;height:1.2em;font:600 14px/1.2 "Segoe UI",sans-serif;
   font-variant-numeric:tabular-nums;color:${C.encre}}
-#att-voile .att-od-val.dette{font-size:11.5px;color:#cfdae6}
+#att-voile .att-od-val.dette{font-size:11px;color:#cfdae6}
 #att-voile .att-od-col{position:relative;width:.62em;height:1.2em}
 #att-voile .att-od-strip{position:absolute;left:0;top:0;display:flex;flex-direction:column;
   transition:transform .55s cubic-bezier(.3,.7,.3,1);will-change:transform;color:${C.jauneForme}}
@@ -1049,5 +1055,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.2" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.3" };
 })();
