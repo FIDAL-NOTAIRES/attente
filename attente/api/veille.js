@@ -16,6 +16,11 @@
 // front CACHE les sections vides. L'écran d'attente est un confort, pas une
 // dépendance.
 //
+// ── v1.6 (02/09/2026) ────────────────────────────────────────────────────
+// • une réponse VIDE n'est plus cachée que 60 s au lieu de sa durée normale :
+//   sinon un incident de quelques minutes se retrouve figé pour des jours
+//   (vécu le jour même avec les compteurs et leurs 7 jours de cache).
+//
 // ── v1.5 (02/09/2026) ────────────────────────────────────────────────────
 // • compteurs.json est lu dans un try/catch, avec une seconde voie par fs si
 //   le require échoue : ce require nu était la SEULE instruction du fichier
@@ -294,11 +299,24 @@ module.exports = async (req, res) => {
     donnees = {};
   }
 
-  // Une réponse partielle se cache quand même : mieux vaut resservir un
-  // bandeau à une seule source pendant 5 min que marteler une source en panne.
+  /* Une réponse PARTIELLE se cache normalement : mieux vaut resservir un
+     bandeau à une seule source pendant 5 min que marteler une source en panne.
+     Mais une réponse VIDE, non — et ça s'est payé cash le 02/09 : un JSON
+     cassé a produit un `pays:[]` qui est parti en cache pour SEPT JOURS, si
+     bien que réparer le fichier ne suffisait plus à faire revenir la carte.
+     Une réponse sans aucun contenu utile ne vit donc qu'une minute, le temps
+     que la source se remette, sans marteler pour autant. */
+  const utile =
+    type === "actus"       ? (donnees.titres || []).length :
+    type === "classements" ? (donnees.ligue1 || []).length :
+    type === "culturel"    ? (donnees.cinema || []).length + (donnees.expos || []).length +
+                             (donnees.livres || []).length + (donnees.titres || []).length :
+                             (donnees.pays || []).length;
+  const fraiche = utile ? duree.fraiche : 60;
+  const rassise = utile ? duree.rassise : 60;
   res.setHeader(
     "Cache-Control",
-    "public, s-maxage=" + duree.fraiche + ", stale-while-revalidate=" + duree.rassise
+    "public, s-maxage=" + fraiche + ", stale-while-revalidate=" + rassise
   );
   res.status(200).json({ type, maj: new Date().toISOString(), erreurs, ...donnees });
 };
