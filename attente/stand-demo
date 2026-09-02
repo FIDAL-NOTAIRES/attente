@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ATTENTE — validation du stand de tir</title>
+<style>
+  :root{
+    --nuit:#0F2238; --canard:#33838B; --orange:#FF982D; --carmin:#A01040;
+    --cyan:#6DD5DC; --jauneF:#FFE764; --jauneT:#FFC900;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;overflow:hidden}
+  body{
+    background:var(--nuit);color:#EAF2F3;
+    font-family:"Segoe UI",system-ui,sans-serif;
+    display:grid;grid-template-rows:auto 1fr auto;
+  }
+  header{padding:14px 22px 10px;border-bottom:1px solid rgba(109,213,220,.22)}
+  header h1{margin:0;font-family:Georgia,serif;font-size:19px;font-weight:600;letter-spacing:.2px}
+  header p{margin:4px 0 0;font-size:12.5px;color:#9FBDC2}
+
+  /* la trame parcellaire, qui se colore de gauche à droite comme jauge */
+  #att-coin{position:relative;margin:16px 22px;border-radius:14px;overflow:hidden;
+    background:#0B1B2C;border:1px solid rgba(109,213,220,.18)}
+  #trame{position:absolute;inset:0;width:100%;height:100%}
+  #voile{position:absolute;inset:0 auto 0 0;width:0%;
+    background:linear-gradient(90deg,rgba(51,131,139,.34),rgba(109,213,220,.20));
+    border-right:2px solid var(--jauneF);transition:width .25s linear;pointer-events:none}
+
+  footer{padding:12px 22px 16px;border-top:1px solid rgba(109,213,220,.22);
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  label{font-size:12.5px;color:#BFD4D7;display:flex;align-items:center;gap:9px}
+  input[type=range]{width:230px;accent-color:var(--canard)}
+  output{font-variant-numeric:tabular-nums;color:var(--jauneT);
+    font-family:Georgia,serif;font-size:15px;min-width:44px}
+  button{font:inherit;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;
+    background:transparent;color:#EAF2F3;border:1px solid var(--canard)}
+  button:hover{border-color:var(--cyan)}
+  button.prim{background:var(--canard);border-color:var(--canard);color:#04222A;font-weight:600}
+  .note{font-size:12px;color:#8FAAB0;margin-left:auto;max-width:34ch;line-height:1.45}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Stand de tir v1.3 — validation avant greffe</h1>
+  <p>Clic sur l'icône canard en bas à gauche pour déplier, second clic pour replier.
+     Le curseur simule l'avancement de la génération.</p>
+</header>
+
+<div id="att-coin">
+  <svg id="trame" viewBox="0 0 1000 520" preserveAspectRatio="none">
+    <g stroke="#2A5566" stroke-width="1.4" fill="#122A3E">
+      <path d="M40,40 L300,30 L330,180 L60,200 Z"/>
+      <path d="M300,30 L560,44 L580,150 L330,180 Z"/>
+      <path d="M560,44 L800,30 L840,140 L580,150 Z"/>
+      <path d="M800,30 L960,50 L960,170 L840,140 Z"/>
+      <path d="M60,200 L330,180 L350,340 L80,360 Z"/>
+      <path d="M330,180 L580,150 L610,320 L350,340 Z"/>
+      <path d="M580,150 L840,140 L860,300 L610,320 Z"/>
+      <path d="M840,140 L960,170 L960,300 L860,300 Z"/>
+      <path d="M80,360 L350,340 L370,486 L100,492 Z"/>
+      <path d="M350,340 L610,320 L640,480 L370,486 Z"/>
+      <path d="M610,320 L860,300 L890,470 L640,480 Z"/>
+      <path d="M860,300 L960,300 L960,466 L890,470 Z"/>
+    </g>
+    <g fill="#3E6B7C" font-family="Segoe UI" font-size="15" opacity=".8">
+      <text x="150" y="120">AB 14</text><text x="420" y="110">AB 15</text>
+      <text x="670" y="100">AB 16</text><text x="880" y="110">AB 17</text>
+      <text x="180" y="280">AB 22</text><text x="450" y="255">AB 23</text>
+      <text x="700" y="240">AB 24</text><text x="890" y="240">AB 25</text>
+      <text x="200" y="430">AB 31</text><text x="470" y="415">AB 32</text>
+      <text x="730" y="400">AB 33</text><text x="900" y="395">AB 34</text>
+    </g>
+  </svg>
+  <div id="voile"></div>
+</div>
+
+<footer>
+  <label>Avancement
+    <input id="p" type="range" min="0" max="100" value="0">
+    <output id="po">0 %</output>
+  </label>
+  <button id="auto" class="prim">Lancer une génération de 3 min</button>
+  <button id="vite">Génération de 30 s</button>
+  <button id="fin">Fin de génération</button>
+  <span class="note">Le score reste affiché tant que la génération tourne&nbsp;;
+    à la fin, bascule immédiate, sans écran de score.</span>
+</footer>
+
+<script src="./stand.js"></script>
+<script>
+  var curseur = document.getElementById('p'),
+      sortie  = document.getElementById('po'),
+      voile   = document.getElementById('voile'),
+      bAuto   = document.getElementById('auto'),
+      minuteur = null;
+
+  ATT_STAND.monter('#att-coin');
+  console.log('stand de tir version', ATT_STAND.version);
+
+  function appliquer(v){
+    curseur.value = v;
+    sortie.textContent = Math.round(v) + ' %';
+    voile.style.width = v + '%';
+    ATT_STAND.progression(v / 100);
+  }
+  appliquer(0);
+
+  function stopper(){
+    if (minuteur) { clearInterval(minuteur); minuteur = null; }
+    bAuto.textContent = 'Lancer une génération de 3 min';
+  }
+
+  curseur.addEventListener('input', function(){ stopper(); appliquer(+curseur.value); });
+
+  function lancer(duree, bouton){
+    if (minuteur) { stopper(); return; }
+    var t0 = Date.now();
+    if (bouton === bAuto) bAuto.textContent = 'Interrompre';
+    minuteur = setInterval(function(){
+      var v = Math.min(100, (Date.now() - t0) / duree * 100);
+      appliquer(v);
+      if (v >= 100) { stopper(); ATT_STAND.arreter(); }
+    }, 200);
+  }
+
+  bAuto.addEventListener('click', function(){ lancer(180000, bAuto); });
+  document.getElementById('vite').addEventListener('click', function(){ lancer(30000, null); });
+  document.getElementById('fin').addEventListener('click', function(){
+    stopper(); ATT_STAND.arreter();
+  });
+</script>
+</body>
+</html>
