@@ -79,21 +79,26 @@
 #att-voile.fin .att-barre>div{background:${C.vert}}
 #att-voile .att-compte{font-size:12.5px;color:${C.sourdine};min-height:16px}
 
-/* ---- trame parcellaire = jauge de fond. Hauteur DÉFINIE (pas un flex-grow) :
-       c'est elle qui cède quand l'écran est bas, jamais les cartes. ---- */
-#att-voile .att-trame{position:relative;width:min(880px,92vw);flex:0 1 auto;min-height:0;height:18vh;
+/* ---- cadre central : sa hauteur est celle qui reste, et le corps qu'il
+       contient se MET À L'ÉCHELLE pour y entrer en entier (voir ajuster()).
+       Rogner une carte au milieu d'un chiffre serait pire que la réduire. --- */
+#att-voile .att-cadre{flex:1 1 auto;min-height:0;width:100%;display:flex;justify-content:center;overflow:hidden}
+#att-voile .att-corps{display:flex;flex-direction:column;align-items:center;width:100%;
+  transform-origin:top center;transform:scale(var(--att-z,1));transition:transform .3s ease}
+
+/* ---- trame parcellaire = jauge de fond ---- */
+#att-voile .att-trame{position:relative;width:min(880px,92vw);flex:0 0 auto;height:17vh;
   display:flex;align-items:center;justify-content:center}
 #att-voile .att-trame svg{width:100%;height:100%}
 #att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
 #att-voile .att-parc.faite{fill-opacity:.8}
 #att-coin{position:absolute;right:6px;bottom:6px;z-index:2}
 
-/* ---- rangée de cartes : tout doit tenir à l'écran, RIEN ne défile. Les
-       cartes sont bornées à la hauteur disponible et leurs listes sont
-       tronquées proprement plutôt que de pousser la page. ---- */
+/* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
+       corps qui absorbe le manque de place. ---- */
 #att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
-  padding:10px 18px 4px;max-width:1180px;flex:0 1 auto;min-height:0;overflow:hidden}
-#att-voile .att-carte{display:none;position:relative;max-height:100%;overflow:hidden}
+  padding:10px 18px 4px;max-width:1180px;flex:0 0 auto}
+#att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
 
 /* ---- CULTURE — bande de pellicule 35 mm. Un billet de cinéma est large et
@@ -402,6 +407,8 @@
     <div class="att-compte" id="att-compte"></div>
   </div>
 
+  <div class="att-cadre">
+   <div class="att-corps" id="att-corps">
   <div class="att-trame" id="att-trame"><div id="att-coin"></div></div>
 
   <div class="att-cartes">
@@ -444,6 +451,8 @@
       <div class="att-grille" id="att-grille"></div>
     </div>
   </div>
+   </div>
+  </div>
 
   <div class="att-poste" id="att-poste">
     <div class="att-echelle" id="att-echelle" role="slider" tabindex="0"
@@ -463,6 +472,10 @@
 
     $("att-echec-fermer").onclick = () => { $("att-echec").classList.remove("on"); v.classList.remove("on"); };
     construireCadran();
+    // le corps change de taille au fil des chargements : on re-mesure tout seul
+    if (window.ResizeObserver) {
+      try { new ResizeObserver(ajuster).observe($("att-corps")); } catch (e) {}
+    }
   }
 
   /* ================= TRAME PARCELLAIRE =================
@@ -582,6 +595,7 @@
           `<td class="pts">${x.points ?? ""}</td></tr>`;
       }).join("");
       $("att-c-classements").classList.add("on");
+      ajuster();
     }).catch(() => {});
   }
 
@@ -608,6 +622,7 @@
       } else return;
       $("att-c-culturel-corps").innerHTML = html;
       $("att-c-culturel").classList.add("on");
+      ajuster();
     }).catch(() => {});
   }
 
@@ -642,6 +657,7 @@
       });
       $("att-c-compteurs").classList.add("on");
       tictacCompteurs(true);
+      ajuster();
       clearInterval(E.compteursMinuterie);
       E.compteursMinuterie = setInterval(() => tictacCompteurs(false), 1000);
     }).catch(() => {});
@@ -657,6 +673,23 @@
     else if (isFinite(n) && n < 0) { genre = "mauvais"; d = "M5 8.9L.8 1.5h8.4z"; titre = titreMauvais; }
     return `<svg class="att-fleche ${genre}" viewBox="0 0 10 10" role="img" aria-label="${titre}">` +
       `<title>${titre}</title><path d="${d}"/></svg>`;
+  }
+
+  /* ================= TENIR À L'ÉCRAN =================
+     Exigence du 02/09 : tout visible, aucun défilement. Plutôt que de rogner
+     une carte — un chiffre coupé en deux est pire qu'un chiffre plus petit —
+     on mesure ce que le corps réclame et on le réduit juste ce qu'il faut.
+     offsetHeight ignore les transformations, donc la mesure reste stable et
+     l'échelle ne peut pas s'auto-entretenir. Plancher à 0,58 : en dessous ce
+     serait illisible, et mieux vaut alors déborder discrètement. */
+  function ajuster() {
+    const cadre = document.querySelector("#att-voile .att-cadre");
+    const corps = $("att-corps");
+    if (!cadre || !corps) return;
+    const besoin = corps.offsetHeight, dispo = cadre.clientHeight;
+    if (!besoin || !dispo) return;
+    const z = Math.min(1, Math.max(.58, dispo / besoin));
+    corps.style.setProperty("--att-z", z.toFixed(3));
   }
 
   function tictacCompteurs(saut) {
@@ -899,7 +932,7 @@
     // l'aiguille repart au silence à chaque attente : aucune station retenue
     E.cran = 0; E.mortes = {};
     radioArreter(); majEtat("Silence"); majCrans();
-    requestAnimationFrame(() => poserAiguille(posCran(0) / 100));
+    requestAnimationFrame(() => { poserAiguille(posCran(0) / 100); ajuster(); });
 
     E.source = opts.source || null;
     clearInterval(E.minuterie);
@@ -935,7 +968,7 @@
     $("att-echec").classList.add("on");
   }
 
-  window.addEventListener("resize", () => { if (E.on) poserAiguille(E.ratio); });
+  window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.3a" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.4-tient-a-lecran" };
 })();
