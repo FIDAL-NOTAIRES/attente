@@ -55,6 +55,7 @@
     vert: "#4caf7d", encre: "#e8eef5", sourdine: "#8fa5bb",
     ligne: "rgba(255,255,255,.14)",
     papier: "#F4EFE4", papierEncre: "#25313d",   // dépêche
+    carminVif: "#E24A63",                        // carmin éclairci, lisible sur nuit
     laiton: "#8a6b3d", bakelite: "#1b2a3a",      // cadran radio
     led: "#FFB53D",                              // panneau de stade
   };
@@ -91,47 +92,73 @@
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
 
-/* ---- CULTURE — ticket de cinéma, bords dentelés et souche perforée.
-       Les encoches sont peintes en couleur de fond par-dessus les bords :
-       le voile étant d'un aplat uni, elles se lisent comme des trous, et
-       ça marche partout, sans mask-composite. ---- */
-#att-voile .att-ticket{background:${C.papier};color:${C.papierEncre};width:290px;padding:14px 20px 12px 34px;
-  border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-#att-voile .att-ticket::before,
-#att-voile .att-ticket::after{content:"";position:absolute;top:0;bottom:0;width:12px;
-  background:radial-gradient(circle 6px at 6px 11px,${C.nuit} 6px,transparent 6.5px) 0 0/12px 22px repeat-y}
-#att-voile .att-ticket::before{left:-6px}
-#att-voile .att-ticket::after{right:-6px}
-#att-voile .att-ticket h3{font-family:Georgia,serif;font-size:15px;font-weight:700;margin:0 0 2px;color:${C.papierEncre}}
-#att-voile .att-ticket .att-ticket-souche{position:absolute;left:14px;top:16px;bottom:14px;width:1px;
-  background:repeating-linear-gradient(to bottom,${C.papierEncre} 0 4px,transparent 4px 9px);opacity:.45}
-#att-voile .att-ticket .att-ticket-serie{font:11px/1 "Segoe UI",sans-serif;letter-spacing:1.5px;color:#8b7f6b;margin-bottom:9px}
-#att-voile .att-ticket .att-rub{margin:9px 0 0}
-#att-voile .att-ticket .att-rub-nom{font:600 11px/1 "Segoe UI",sans-serif;letter-spacing:.6px;color:#9a7b3c;
-  display:flex;align-items:center;gap:7px;margin-bottom:4px}
-#att-voile .att-ticket .att-rub-nom::after{content:"";flex:1;height:1px;background:#d8cdb8}
-#att-voile .att-ticket ul{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.4}
-#att-voile .att-ticket li{padding:2px 0}
-#att-voile .att-ticket li::before{content:"▸ ";color:${C.carmin}}
+/* ---- CULTURE — vrai ticket de cinéma : souche carmin en tête, ligne de
+       perforation avec ses DEUX encoches (c'est ce détail-là qui fait lire
+       « billet » et rien d'autre), bord inférieur déchiqueté, code-barres.
+       Les encoches sont peintes en couleur de fond par-dessus les bords : le
+       voile étant un aplat uni, elles se lisent comme des trous — et ça
+       marche partout, sans mask-composite. ---- */
+#att-voile .att-ticket{width:298px;background:${C.papier};color:${C.papierEncre};border-radius:4px;
+  padding-bottom:14px;transform:rotate(-.8deg);box-shadow:0 8px 22px rgba(0,0,0,.45)}
+#att-voile .att-ticket::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:10px;
+  background:radial-gradient(circle 5px at 5px 5px,${C.nuit} 5px,transparent 5.5px) 0 0/10px 10px repeat-x}
+#att-voile .att-souche{display:flex;align-items:center;gap:10px;background:${C.carmin};color:${C.papier};
+  padding:8px 16px;border-radius:4px 4px 0 0}
+#att-voile .att-souche-mention{font:700 11.5px/1 "Segoe UI",sans-serif;letter-spacing:3px}
+#att-voile .att-souche-num{margin-left:auto;font:11px/1 "Consolas","Courier New",monospace;letter-spacing:1px;opacity:.82}
+#att-voile .att-perf{position:relative;height:2px;
+  background:repeating-linear-gradient(to right,rgba(38,49,60,.42) 0 5px,transparent 5px 11px)}
+#att-voile .att-perf i{position:absolute;top:-6px;width:13px;height:13px;border-radius:50%;background:${C.nuit}}
+#att-voile .att-perf i:first-child{left:-6.5px}
+#att-voile .att-perf i:last-child{right:-6.5px}
+#att-voile .att-ticket-corps{padding:12px 18px 0}
+#att-voile .att-ticket h3{font-family:Georgia,serif;font-size:16px;font-weight:700;margin:0 0 10px;color:${C.papierEncre}}
+#att-voile .att-rub{margin:0 0 9px}
+#att-voile .att-rub:last-child{margin-bottom:0}
+#att-voile .att-rub-nom{font:600 11.5px/1 "Segoe UI",sans-serif;color:${C.carmin};
+  display:flex;align-items:center;gap:8px;margin-bottom:4px}
+#att-voile .att-rub-nom::after{content:"";flex:1;height:1px;background:rgba(160,16,64,.26)}
+#att-voile .att-ticket ul{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.42}
+#att-voile .att-ticket li{position:relative;padding:2px 0 2px 12px}
+#att-voile .att-ticket li::before{content:"";position:absolute;left:0;top:8.5px;width:5px;height:5px;
+  border-radius:50%;background:#c9b998}
+#att-voile .att-code{height:24px;margin:13px 18px 0;opacity:.8;background:repeating-linear-gradient(to right,
+  ${C.papierEncre} 0 1px,transparent 1px 3px,${C.papierEncre} 3px 5px,transparent 5px 6px,
+  ${C.papierEncre} 6px 8px,transparent 8px 12px)}
+#att-voile .att-code-lib{margin:5px 18px 0;text-align:center;color:#8b7f6b;
+  font:10px/1 "Consolas","Courier New",monospace;letter-spacing:2px}
 
-/* ---- CLASSEMENTS — panneau lumineux de stade : caisson sombre, matrice de
-       points, chiffres ambre, quatre vis dans les coins. ---- */
-#att-voile .att-panneau{width:290px;background:#0a1520;border:1px solid #2b3d4f;border-radius:8px;
-  padding:14px 16px 12px;box-shadow:inset 0 0 34px rgba(0,0,0,.75),0 4px 14px rgba(0,0,0,.4)}
-#att-voile .att-panneau::before{content:"";position:absolute;inset:8px;pointer-events:none;border-radius:4px;
-  background:radial-gradient(circle .6px at .6px .6px,rgba(255,255,255,.07) .6px,transparent .7px) 0 0/4px 4px}
-#att-voile .att-panneau .att-vis{position:absolute;width:5px;height:5px;border-radius:50%;
-  background:#48596b;box-shadow:inset 0 1px 1px rgba(255,255,255,.35)}
-#att-voile .att-panneau h3{font:600 11px/1 "Segoe UI",sans-serif;letter-spacing:2.5px;color:${C.cyan};
-  margin:0 0 10px;display:flex;align-items:center;gap:8px}
-#att-voile .att-panneau h3::after{content:"";flex:1;height:1px;background:#22323f}
-#att-voile .att-panneau table{border-collapse:collapse;width:100%;font-size:13px;position:relative}
-#att-voile .att-panneau td{padding:2.5px 0;color:${C.led};font-variant-numeric:tabular-nums;
-  text-shadow:0 0 7px rgba(255,181,61,.45)}
-#att-voile .att-panneau td.rang{width:22px;color:#7d8ea0;text-shadow:none;font-size:11.5px}
-#att-voile .att-panneau td.equipe{color:#dbe6f0;text-shadow:none;padding-right:8px}
-#att-voile .att-panneau td.pts{text-align:right;font-weight:600}
-#att-voile .att-panneau tr:first-child td.equipe{color:#fff;font-weight:600}
+/* ---- CLASSEMENTS — panneau lumineux de stade. Un tableau d'affichage est
+       ALLUMÉ : caisson bleu vif, bandeau de titre en canard, témoin vert qui
+       respire, écran encastré à matrice de points, points en ambre franc, et
+       les rangs en pastilles (podium doré, places européennes en cyan) — le
+       classement dit ainsi quelque chose au lieu d'aligner des chiffres. --- */
+#att-voile .att-panneau{width:298px;background:linear-gradient(#18344c,#0e2133);
+  border:1px solid #42627e;border-radius:8px;padding:0 0 12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.09)}
+#att-voile .att-panneau-tete{display:flex;align-items:center;gap:9px;color:#fff;
+  background:linear-gradient(${C.canard},#2a6a72);padding:8px 14px;border-radius:7px 7px 0 0}
+#att-voile .att-panneau-tete h3{font:600 13px/1 "Segoe UI",sans-serif;letter-spacing:1.2px;margin:0}
+#att-voile .att-led-vive{width:8px;height:8px;border-radius:50%;background:#8CFF6B;flex:0 0 auto;
+  box-shadow:0 0 9px #8CFF6B;animation:att-pulse 2.6s ease-in-out infinite}
+#att-voile .att-panneau-jour{margin-left:auto;font:11px/1 "Consolas","Courier New",monospace;
+  background:rgba(0,0,0,.3);border-radius:3px;padding:3px 8px}
+#att-voile .att-ecran{position:relative;margin:11px 12px 0;background:#08161f;border:1px solid #335066;
+  border-radius:5px;padding:9px 11px;box-shadow:inset 0 0 24px rgba(0,0,0,.7)}
+#att-voile .att-ecran::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:4px;
+  background:radial-gradient(circle .6px at .6px .6px,rgba(255,255,255,.055) .6px,transparent .7px) 0 0/4px 4px}
+#att-voile .att-ecran table{border-collapse:collapse;width:100%;position:relative}
+#att-voile .att-ecran thead td{font:10.5px/1 "Segoe UI",sans-serif;letter-spacing:1px;color:#6f879c;padding:0 0 6px}
+#att-voile .att-ecran tbody td{padding:3px 0;border-top:1px solid rgba(255,255,255,.055)}
+#att-voile .att-ecran td.equipe{font-size:13.5px;color:#eaf3fb;padding:3px 8px}
+#att-voile .att-ecran tbody tr:first-child td.equipe{color:#fff;font-weight:600}
+#att-voile .att-ecran td.pts{text-align:right;font:700 15px/1 "Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;color:${C.led};text-shadow:0 0 10px rgba(255,181,61,.55)}
+#att-voile .att-rang{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+  border-radius:3px;font:600 10.5px/1 "Segoe UI",sans-serif;background:rgba(255,255,255,.09);color:#b9cadb}
+#att-voile .att-rang.podium{background:${C.jauneForme};color:${C.nuit}}
+#att-voile .att-rang.euro{background:rgba(109,213,220,.2);color:${C.cyan}}
+@keyframes att-pulse{0%,100%{opacity:1}50%{opacity:.28}}
 
 /* ---- COMPTEURS — compteur électrique : cadran rond en tête, tambours à
        chiffres derrière une vitre, 9 pays en grille simultanée. ---- */
@@ -166,6 +193,15 @@
 #att-voile .att-od-fixe{width:.62em;text-align:center}
 #att-voile .att-od-sep{width:.26em}
 #att-voile .att-od-suf{font-size:10.5px;color:${C.sourdine};margin-left:4px;align-self:center}
+
+/* flèche de tendance : le VERT est toujours vers le haut et signifie « bonne
+   nouvelle ». Pour la population, hausse = vert. Pour la dette, la lecture
+   s'inverse : une dette qui gonfle est une flèche rouge vers le bas. */
+#att-voile .att-fleche{width:9px;height:9px;flex:0 0 auto;margin-left:6px;align-self:center}
+#att-voile .att-fleche path{fill:currentColor}
+#att-voile .att-fleche.bon{color:${C.vert};filter:drop-shadow(0 0 4px rgba(76,175,125,.55))}
+#att-voile .att-fleche.mauvais{color:${C.carminVif};filter:drop-shadow(0 0 4px rgba(226,74,99,.5))}
+#att-voile .att-fleche.plat{color:${C.sourdine}}
 
 /* cadran rond du compteur, aiguille qui suit la progression */
 #att-voile .att-cadran{width:42px;height:42px;flex:0 0 auto}
@@ -230,6 +266,7 @@
 @media (prefers-reduced-motion: reduce){
   #att-voile .att-depeche-int{animation:none}
   #att-voile .att-od-strip,#att-voile .att-parc,#att-voile .att-aiguille,#att-voile .att-cadran-aig{transition:none}
+  #att-voile .att-led-vive{animation:none}
 }`;
 
   /* ---------- radios : adresses de flux EN DUR, aucun appel à /api/veille.
@@ -363,17 +400,31 @@
 
   <div class="att-cartes">
     <div class="att-carte att-panneau" id="att-c-classements">
-      <span class="att-vis" style="left:5px;top:5px"></span><span class="att-vis" style="right:5px;top:5px"></span>
-      <span class="att-vis" style="left:5px;bottom:5px"></span><span class="att-vis" style="right:5px;bottom:5px"></span>
-      <h3 id="att-c-classements-t">Ligue 1</h3>
-      <table><tbody id="att-c-classements-b"></tbody></table>
+      <div class="att-panneau-tete">
+        <span class="att-led-vive"></span>
+        <h3 id="att-c-classements-t">Ligue 1</h3>
+        <span class="att-panneau-jour" id="att-c-classements-j"></span>
+      </div>
+      <div class="att-ecran">
+        <table>
+          <thead><tr><td></td><td>Équipe</td><td style="text-align:right">Pts</td></tr></thead>
+          <tbody id="att-c-classements-b"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="att-carte att-ticket" id="att-c-culturel">
-      <span class="att-ticket-souche"></span>
-      <h3>Ce qui sort en ville</h3>
-      <div class="att-ticket-serie">SÉANCE CONTINUE · RANG 08</div>
-      <div id="att-c-culturel-corps"></div>
+      <div class="att-souche">
+        <span class="att-souche-mention">Une place</span>
+        <span class="att-souche-num">Nº 75008</span>
+      </div>
+      <div class="att-perf"><i></i><i></i></div>
+      <div class="att-ticket-corps">
+        <h3>Ce qui sort en ville</h3>
+        <div id="att-c-culturel-corps"></div>
+      </div>
+      <div class="att-code" aria-hidden="true"></div>
+      <div class="att-code-lib">bon pour une séance</div>
     </div>
 
     <div class="att-carte att-compteur" id="att-c-compteurs">
@@ -389,7 +440,7 @@
         </svg>
         <div>
           <h3>Pendant ce temps, dans le monde</h3>
-          <div class="att-comp-h-sous">Population et dette publique, estimées seconde par seconde</div>
+          <div class="att-comp-h-sous">Estimées seconde par seconde. La flèche verte marque la bonne tendance.</div>
         </div>
       </div>
       <div class="att-grille" id="att-grille"></div>
@@ -523,11 +574,15 @@
       const l = d.ligue1 || d.classement || [];
       if (!l.length) return;
       $("att-c-classements-t").textContent = d.competition || "Ligue 1";
-      $("att-c-classements-b").innerHTML = l.map((x) =>
-        `<tr><td class="rang">${echap(String(x.rang ?? ""))}</td>` +
-        `<td class="equipe">${echap(String(x.equipe ?? ""))}</td>` +
-        `<td class="pts">${x.points ?? ""}</td></tr>`
-      ).join("");
+      const j = d.journee || d.matchday;
+      $("att-c-classements-j").textContent = j ? "J. " + j : "";
+      $("att-c-classements-b").innerHTML = l.map((x, i) => {
+        const r = +(x.rang ?? i + 1);
+        const genre = r <= 3 ? " podium" : r <= 6 ? " euro" : "";
+        return `<tr><td><span class="att-rang${genre}">${r}</span></td>` +
+          `<td class="equipe">${echap(String(x.equipe ?? ""))}</td>` +
+          `<td class="pts">${x.points ?? ""}</td></tr>`;
+      }).join("");
       $("att-c-classements").classList.add("on");
     }).catch(() => {});
   }
@@ -573,9 +628,11 @@
         cell.innerHTML =
           `<div class="att-pays-tete">${drapeau(p.nom, p.code)}<span class="att-pays-nom">${echap(p.nom)}</span></div>` +
           `<div class="att-ligne"><span class="att-ligne-lib">hab.</span>` +
-          `<span class="att-vitre"><span class="att-od-val"></span></span></div>` +
+          `<span class="att-vitre"><span class="att-od-val"></span></span>` +
+          fleche(p.popParSec, "Population en hausse", "Population en baisse") + `</div>` +
           `<div class="att-ligne"><span class="att-ligne-lib">dette</span>` +
-          `<span class="att-vitre"><span class="att-od-val dette"></span><span class="att-od-suf"></span></span></div>`;
+          `<span class="att-vitre"><span class="att-od-val dette"></span><span class="att-od-suf"></span></span>` +
+          fleche(-p.detteParSec, "Dette qui reflue", "Dette qui s'aggrave") + `</div>`;
         grille.appendChild(cell);
         const vals = cell.querySelectorAll(".att-od-val");
         E.roues.push({
@@ -591,6 +648,19 @@
       E.compteursMinuterie = setInterval(() => tictacCompteurs(false), 1000);
     }).catch(() => {});
   }
+  /* Flèche de tendance. On passe la grandeur DÉJÀ orientée « le positif est
+     une bonne nouvelle » : pour la dette, l'appelant envoie donc -detteParSec.
+     Le vert monte, le rouge descend, un tiret gris pour une valeur nulle ou
+     absente. Le taux ne bouge pas pendant une attente : on dessine une fois. */
+  function fleche(bon, titreBon, titreMauvais) {
+    const n = Number(bon);
+    let genre = "plat", d = "M1 4.1h8v1.8H1z", titre = "Tendance inconnue";
+    if (isFinite(n) && n > 0) { genre = "bon"; d = "M5 1.1L9.2 8.5H.8z"; titre = titreBon; }
+    else if (isFinite(n) && n < 0) { genre = "mauvais"; d = "M5 8.9L.8 1.5h8.4z"; titre = titreMauvais; }
+    return `<svg class="att-fleche ${genre}" viewBox="0 0 10 10" role="img" aria-label="${titre}">` +
+      `<title>${titre}</title><path d="${d}"/></svg>`;
+  }
+
   function tictacCompteurs(saut) {
     if (!E.compteurs) return;
     const dt = (Date.now() - Date.parse(E.compteurs.reference)) / 1000;
