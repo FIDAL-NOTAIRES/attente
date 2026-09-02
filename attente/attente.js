@@ -79,18 +79,21 @@
 #att-voile.fin .att-barre>div{background:${C.vert}}
 #att-voile .att-compte{font-size:12.5px;color:${C.sourdine};min-height:16px}
 
-/* ---- trame parcellaire = jauge de fond ---- */
-#att-voile .att-trame{position:relative;width:min(880px,92vw);flex:0 1 auto;min-height:96px;max-height:23vh;
+/* ---- trame parcellaire = jauge de fond. Hauteur DÉFINIE (pas un flex-grow) :
+       c'est elle qui cède quand l'écran est bas, jamais les cartes. ---- */
+#att-voile .att-trame{position:relative;width:min(880px,92vw);flex:0 1 auto;min-height:0;height:18vh;
   display:flex;align-items:center;justify-content:center}
 #att-voile .att-trame svg{width:100%;height:100%}
 #att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
 #att-voile .att-parc.faite{fill-opacity:.8}
 #att-coin{position:absolute;right:6px;bottom:6px;z-index:2}
 
-/* ---- rangée de cartes ---- */
+/* ---- rangée de cartes : tout doit tenir à l'écran, RIEN ne défile. Les
+       cartes sont bornées à la hauteur disponible et leurs listes sont
+       tronquées proprement plutôt que de pousser la page. ---- */
 #att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
-  padding:10px 18px 4px;max-width:1180px;flex:0 1 auto;overflow-y:auto}
-#att-voile .att-carte{display:none;position:relative}
+  padding:10px 18px 4px;max-width:1180px;flex:0 1 auto;min-height:0;overflow:hidden}
+#att-voile .att-carte{display:none;position:relative;max-height:100%;overflow:hidden}
 #att-voile .att-carte.on{display:block}
 
 /* ---- CULTURE — bande de pellicule 35 mm. Un billet de cinéma est large et
@@ -100,14 +103,15 @@
        géométrie. Chaque rubrique occupe un photogramme. Les trous sont peints
        en couleur de fond : le voile étant un aplat uni, ils se lisent comme de
        vraies perforations, sans mask-composite. ---- */
-#att-voile .att-pellicule{width:300px;background:#EDE2CB;color:#2a2318;border-radius:2px;
-  padding:0 18px 0;box-shadow:0 8px 22px rgba(0,0,0,.45)}
+#att-voile .att-pellicule{width:306px;background:#EDE2CB;color:#2a2318;border-radius:2px;
+  padding:0 22px 0;box-shadow:0 8px 22px rgba(0,0,0,.45)}
 #att-voile .att-pellicule::before,
-#att-voile .att-pellicule::after{content:"";position:absolute;top:0;bottom:0;width:18px;
-  background-image:linear-gradient(${C.nuit} 0 9px,transparent 9px);
-  background-size:9px 21px;background-position:4.5px 8px;background-repeat:repeat-y}
-#att-voile .att-pellicule::before{left:0}
-#att-voile .att-pellicule::after{right:0}
+#att-voile .att-pellicule::after{content:"";position:absolute;top:0;bottom:0;width:22px;
+  background-color:#E0D2B4;
+  background-image:linear-gradient(${C.nuit} 0 7px,transparent 7px);
+  background-size:12px 15px;background-position:5px 7px;background-repeat:repeat-y}
+#att-voile .att-pellicule::before{left:0;box-shadow:inset -1px 0 0 rgba(42,35,24,.16)}
+#att-voile .att-pellicule::after{right:0;box-shadow:inset 1px 0 0 rgba(42,35,24,.16)}
 #att-voile .att-photo{padding:11px 5px;border-top:1px solid rgba(42,35,24,.26)}
 #att-voile .att-photo:first-child{border-top:0}
 #att-voile .att-pellicule h3{font-family:Georgia,serif;font-size:16px;font-weight:700;margin:0;color:#2a2318}
@@ -115,7 +119,8 @@
   display:flex;align-items:center;gap:8px;margin-bottom:5px}
 #att-voile .att-rub-nom::after{content:"";flex:1;height:1px;background:rgba(168,114,43,.3)}
 #att-voile .att-pellicule ul{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.42}
-#att-voile .att-pellicule li{position:relative;padding:2px 0 2px 12px;color:#3a3226}
+#att-voile .att-pellicule li{position:relative;padding:2px 0 2px 12px;color:#3a3226;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 #att-voile .att-pellicule li::before{content:"";position:absolute;left:0;top:8.5px;width:5px;height:5px;
   border-radius:50%;background:#bda880}
 #att-voile .att-bord{padding:7px 5px 9px;border-top:1px solid rgba(42,35,24,.26);
@@ -252,6 +257,14 @@
 #att-echec button{margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);
   color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font:13px "Segoe UI",sans-serif}
 
+@media (max-height:900px){
+  #att-voile .att-haut{padding:14px 20px 2px;gap:6px}
+  #att-voile .att-titre{font-size:24px}
+  #att-voile .att-trame{height:13vh}
+  #att-voile .att-poste{margin:4px 0 2px;padding:7px 16px 8px}
+  #att-voile .att-echelle{height:38px}
+  #att-voile .att-cartes{padding:6px 18px 2px;gap:12px}
+}
 @media (max-width:720px){
   #att-voile .att-titre{font-size:24px}
   #att-voile .att-trame{max-height:16vh}
@@ -586,11 +599,11 @@
       if (rubs.length) {
         html = rubs.map(([nom, liste]) =>
           `<div class="att-photo"><div class="att-rub-nom">${nom}</div><ul>` +
-          liste.slice(0, 3).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
+          liste.slice(0, 2).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
           `</ul></div>`).join("");
       } else if (d.titres && d.titres.length) {
         html = `<div class="att-photo"><div class="att-rub-nom">À l'affiche</div><ul>` +
-          d.titres.slice(0, 6).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
+          d.titres.slice(0, 5).map((t) => `<li>${echap(typeof t === "string" ? t : t.t)}</li>`).join("") +
           `</ul></div>`;
       } else return;
       $("att-c-culturel-corps").innerHTML = html;
@@ -924,5 +937,5 @@
 
   window.addEventListener("resize", () => { if (E.on) poserAiguille(E.ratio); });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.2c-pellicule" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.3-tient-a-lecran" };
 })();
