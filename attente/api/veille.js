@@ -10,10 +10,21 @@
 // derrière. Les radios n'ont pas de type : leurs adresses de flux sont en dur
 // dans attente.js, aucun appel serveur.
 //
-// ⚠ Les sources externes (RSS, ESPN) sont NON CONTRACTUELLES : chacune peut
-// tomber ou changer sans préavis. Règle : jamais de 500 pour une source en
-// panne — on renvoie ce qu'on a, avec un champ `erreurs`, et le front CACHE
-// les sections vides. L'écran d'attente est un confort, pas une dépendance.
+// ⚠ Les sources externes (RSS, API de scores) sont NON CONTRACTUELLES :
+// chacune peut tomber ou changer sans préavis. Règle : jamais de 500 pour une
+// source en panne — on renvoie ce qu'on a, avec un champ `erreurs`, et le
+// front CACHE les sections vides. L'écran d'attente est un confort, pas une
+// dépendance.
+//
+// ── v1.3 (02/09/2026) ────────────────────────────────────────────────────
+// • culturel renvoie désormais TROIS rubriques séparées — `cinema`, `expos`,
+//   `livres` — au lieu d'un `titres` global : la carte du front (bande de
+//   pellicule) affiche un photogramme par rubrique, on distingue enfin les
+//   sorties de films des sorties de livres. Repli conservé : si aucune des
+//   trois ne répond, on retombe sur le flux Culture global en `titres`, que le
+//   front sait afficher en une rubrique unique.
+// • classements renvoie `journee` (season.currentMatchday) et `competition`,
+//   affichés dans l'en-tête du panneau de stade.
 
 const DUREES = {                       // s-maxage, stale-while-revalidate (s)
   actus:       { fraiche: 300,    rassise: 3600   },  // 5 min
@@ -29,7 +40,7 @@ async function chercher(url, ms = 6000, entetes = {}) {
   try {
     const r = await fetch(url, {
       signal: garde.signal,
-      // ⚠ UA de navigateur : ESPN renvoie 403 aux user-agents maison
+      // ⚠ UA de navigateur : ESPN renvoyait 403 aux user-agents maison
       // (constaté au premier déploiement, 31/08/2026). Les flux RSS s'en moquent.
       headers: {
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
@@ -43,7 +54,6 @@ async function chercher(url, ms = 6000, entetes = {}) {
     clearTimeout(minuterie);
   }
 }
-
 
 // -- entités HTML : les nommées courantes + TOUTES les numériques (&#xE0; /
 // &#224;) — franceinfo encode ainsi chaque accent (constaté au premier
@@ -95,18 +105,19 @@ async function actus(erreurs) {
 // -- Classements : football-data.org (ESPN abandonné le 31/08/2026 : 403 sur
 // les IP de datacenter, quel que soit l'habillage). Clé gratuite dans la
 // variable d'environnement FOOTBALL_DATA_CLE (Secret Vercel, comme
-// DATABASE_URL sur MATRICE). Offre gratuite : la Ligue 1 (FL1) y est, le
-// Top 14 n'a pas de source gratuite sérieuse — abandonné, la carte du front
-// n'affiche que ce qui existe. Quota 10 req/min : avec 6 h de cache CDN on
-// fait ~4 appels/jour, indolore.
+// DATABASE_URL sur MATRICE). Offre gratuite : la Ligue 1 (FL1) y est ; le
+// Top 14 attend un compte API-Sports, la carte du front n'affiche que ce qui
+// existe. Quota 10 req/min : avec 6 h de cache CDN on fait ~4 appels/jour.
 async function classements(erreurs) {
-  const resultat = { ligue1: [], top14: [] };
+  const resultat = { competition: "Ligue 1", journee: null, ligue1: [], top14: [] };
   const cle = process.env.FOOTBALL_DATA_CLE;
   if (!cle) { erreurs.push("classements : FOOTBALL_DATA_CLE absente des variables d'environnement"); return resultat; }
   try {
     const brut = await chercher("https://api.football-data.org/v4/competitions/FL1/standings", 6000,
       { "X-Auth-Token": cle });
     const racine = JSON.parse(brut);
+    if (racine.competition && racine.competition.name) resultat.competition = racine.competition.name;
+    if (racine.season && racine.season.currentMatchday) resultat.journee = racine.season.currentMatchday;
     const table = ((racine.standings || []).find((s) => s.type === "TOTAL") || (racine.standings || [])[0] || {}).table || [];
     resultat.ligue1 = table.slice(0, 8).map((l) => ({
       rang: l.position,
@@ -118,20 +129,67 @@ async function classements(erreurs) {
   return resultat;
 }
 
-// -- Culturel : premier flux qui répond, dans l'ordre. Cinéma, expos, livres
-// vivent très bien à J+1, d'où les 24 h de cache.
+/* -- Culturel : TROIS rubriques distinctes (v1.3). Le Monde expose un flux par
+   rubrique sur le motif /<rubrique>/rss_full.xml ; franceinfo sert de doublure.
+   Chaque rubrique essaie ses candidats DANS L'ORDRE et s'arrête au premier qui
+   répond. Les trois rubriques partent en parallèle.
+
+   ⚠ Délai de garde ramené à 3,5 s ici : trois rubriques × deux candidats en
+   séquence, il faut rester sous la limite d'exécution de la fonction. Une
+   rubrique qui expire est simplement absente — avec 24 h de cache et
+   stale-while-revalidate, personne ne le voit.
+
+   ⚠ Repli global : si AUCUNE des trois ne rapporte quoi que ce soit, on
+   interroge le flux Culture généraliste et on le renvoie en `titres`. Le front
+   sait afficher ce cas en une rubrique unique « À l'affiche » plutôt que de
+   masquer la carte. */
+const RUBRIQUES = [
+  { clef: "cinema", candidats: [
+    { source: "Le Monde Cinéma",   url: "https://www.lemonde.fr/cinema/rss_full.xml" },
+    { source: "franceinfo Cinéma", url: "https://www.francetvinfo.fr/culture/cinema.rss" },
+  ]},
+  { clef: "expos", candidats: [
+    { source: "Le Monde Arts",         url: "https://www.lemonde.fr/arts/rss_full.xml" },
+    { source: "franceinfo Arts-expos", url: "https://www.francetvinfo.fr/culture/arts-expos.rss" },
+  ]},
+  { clef: "livres", candidats: [
+    { source: "Le Monde Livres",   url: "https://www.lemonde.fr/livres/rss_full.xml" },
+    { source: "franceinfo Livres", url: "https://www.francetvinfo.fr/culture/livres.rss" },
+  ]},
+];
+
 async function culturel(erreurs) {
-  const candidats = [
+  const sorties = { cinema: [], expos: [], livres: [], sources: {} };
+
+  await Promise.all(RUBRIQUES.map(async (r) => {
+    for (const c of r.candidats) {
+      try {
+        const t = titresRSS(await chercher(c.url, 3500), 6);
+        if (t.length) {
+          sorties[r.clef] = t.slice(0, 4);
+          sorties.sources[r.clef] = c.source;
+          return;
+        }
+      } catch (e) {
+        erreurs.push("culturel/" + r.clef + "/" + c.source + " : " + e.message);
+      }
+    }
+  }));
+
+  if (sorties.cinema.length || sorties.expos.length || sorties.livres.length) return sorties;
+
+  // Repli : le flux Culture généraliste, comme en v1.2.
+  const globaux = [
     { source: "Le Monde Culture",   url: "https://www.lemonde.fr/culture/rss_full.xml" },
     { source: "franceinfo Culture", url: "https://www.francetvinfo.fr/culture.rss" },
   ];
-  for (const c of candidats) {
+  for (const g of globaux) {
     try {
-      const t = titresRSS(await chercher(c.url), 8);
-      if (t.length) return { source: c.source, titres: t };
-    } catch (e) { erreurs.push("culturel/" + c.source + " : " + e.message); }
+      const t = titresRSS(await chercher(g.url, 3500), 8);
+      if (t.length) return { source: g.source, titres: t, cinema: [], expos: [], livres: [] };
+    } catch (e) { erreurs.push("culturel/repli/" + g.source + " : " + e.message); }
   }
-  return { source: null, titres: [] };
+  return { source: null, titres: [], cinema: [], expos: [], livres: [] };
 }
 
 // -- Compteurs : bases + taux par seconde, fichier statique du dépôt. Le
