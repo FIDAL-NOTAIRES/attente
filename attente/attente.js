@@ -93,7 +93,7 @@
   transform-origin:top center;transform:scale(var(--att-z,1));transition:transform .3s ease}
 
 /* ---- trame parcellaire = jauge de fond ---- */
-#att-voile .att-trame{position:relative;width:min(880px,92vw);flex:0 0 auto;height:17vh;
+#att-voile .att-trame{position:relative;width:min(1180px,94vw);flex:0 0 auto;height:17vh;
   display:flex;align-items:center;justify-content:center}
 #att-voile .att-trame svg{width:100%;height:100%}
 #att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
@@ -103,7 +103,7 @@
 /* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
        corps qui absorbe le manque de place. ---- */
 #att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
-  padding:10px 18px 4px;max-width:1180px;flex:0 0 auto}
+  padding:10px 18px 4px;max-width:1560px;flex:0 0 auto}
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
 
@@ -114,7 +114,7 @@
        géométrie. Chaque rubrique occupe un photogramme. Les trous sont peints
        en couleur de fond : le voile étant un aplat uni, ils se lisent comme de
        vraies perforations, sans mask-composite. ---- */
-#att-voile .att-pellicule{width:306px;background:#EDE2CB;color:#2a2318;border-radius:2px;
+#att-voile .att-pellicule{width:300px;background:#EDE2CB;color:#2a2318;border-radius:2px;
   padding:0 22px 0;box-shadow:0 8px 22px rgba(0,0,0,.45)}
 #att-voile .att-pellicule::before,
 #att-voile .att-pellicule::after{content:"";position:absolute;top:0;bottom:0;width:22px;
@@ -142,7 +142,7 @@
        respire, écran encastré à matrice de points, points en ambre franc, et
        les rangs en pastilles (podium doré, places européennes en cyan) — le
        classement dit ainsi quelque chose au lieu d'aligner des chiffres. --- */
-#att-voile .att-panneau{width:298px;background:linear-gradient(#18344c,#0e2133);
+#att-voile .att-panneau{width:290px;background:linear-gradient(#18344c,#0e2133);
   border:1px solid #42627e;border-radius:8px;padding:0 0 12px;
   box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.09)}
 #att-voile .att-panneau-tete{display:flex;align-items:center;gap:9px;color:#fff;
@@ -171,13 +171,13 @@
 
 /* ---- COMPTEURS — compteur électrique : cadran rond en tête, tambours à
        chiffres derrière une vitre, 9 pays en grille simultanée. ---- */
-#att-voile .att-compteur{width:min(660px,92vw);background:linear-gradient(#1a2a3c,#132234);
-  border:1px solid #33455a;border-radius:10px;padding:12px 16px 14px;
+#att-voile .att-compteur{width:min(560px,92vw);background:linear-gradient(#1a2a3c,#132234);
+  border:1px solid #33455a;border-radius:10px;padding:10px 14px 12px;
   box-shadow:0 4px 16px rgba(0,0,0,.4)}
 #att-voile .att-compteur .att-comp-haut{display:flex;align-items:center;gap:11px;margin-bottom:10px}
 #att-voile .att-compteur h3{font-family:Georgia,serif;font-size:15px;font-weight:700;margin:0;color:${C.cyan}}
 #att-voile .att-compteur .att-comp-h-sous{font-size:11.5px;color:${C.sourdine}}
-#att-voile .att-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:9px 14px}
+#att-voile .att-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(163px,1fr));gap:8px 13px}
 #att-voile .att-pays{border-top:1px solid rgba(255,255,255,.09);padding-top:6px}
 #att-voile .att-pays-tete{display:flex;align-items:center;gap:7px;margin-bottom:3px}
 #att-voile .att-pays-tete svg{width:21px;height:14px;border-radius:1.5px;flex:0 0 auto;
@@ -976,5 +976,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.4a-tient-a-lecran" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.5-pleine-largeur" };
 })();
