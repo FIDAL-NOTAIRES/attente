@@ -11,7 +11,8 @@
    identiques et tristes :
      • actus       → bande de dépêche d'agence, papier, bord déchiré, téléscripteur
      • classements → panneau lumineux de stade (matrice de points, chiffres ambre)
-     • culturel    → ticket de cinéma, bords dentelés, souche perforée
+     • culturel    → bande de pellicule 35 mm, perforations carrées sur les
+                     deux bords, une rubrique par photogramme
      • compteurs   → compteur électrique : cadran rond + tambours à chiffres,
                      les 9 pays en grille simultanée avec drapeau (plus de défilé)
      • radio       → cadran horizontal de vieux poste : aiguille sur échelle
@@ -923,5 +924,5 @@
 
   window.addEventListener("resize", () => { if (E.on) poserAiguille(E.ratio); });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.2" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "1.2c-pellicule" };
 })();
