@@ -93,7 +93,7 @@
   transform-origin:top center;transform:scale(var(--att-z,1));transition:transform .3s ease}
 
 /* ---- trame parcellaire = jauge de fond ---- */
-#att-voile .att-trame{position:relative;width:min(1180px,94vw);flex:0 0 auto;height:15vh;
+#att-voile .att-trame{position:relative;width:min(1400px,94vw);flex:0 0 auto;height:15vh;
   display:flex;align-items:center;justify-content:center}
 #att-voile .att-trame svg{width:100%;height:100%}
 #att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
@@ -102,8 +102,14 @@
 
 /* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
        corps qui absorbe le manque de place. ---- */
+/* ⚠ AUCUN max-width ici. Il y en a eu un (1180, puis 1560, puis 1680, puis
+   1800 px) et à chaque fois la rangée s'est retrouvée à quelques pixels du
+   plafond : une carte passait à la ligne, la pile doublait de hauteur et
+   ajuster() réduisait tout. Un budget de largeur en dur est intenable dès que
+   les cartes changent. C'est la fenêtre qui décide, et flex-wrap ne se
+   déclenche donc que quand la place manque VRAIMENT. */
 #att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:stretch;
-  padding:10px 18px 4px;max-width:1680px;flex:0 0 auto}
+  padding:10px 18px 4px;flex:0 0 auto}
 #att-voile .att-carte{display:none;position:relative}
 #att-voile .att-carte.on{display:block}
 
@@ -118,7 +124,8 @@
 #att-voile .att-cult h3{margin:0 0 6px;font:600 11.5px/1 "Segoe UI",sans-serif;
   display:flex;align-items:center;gap:7px}
 #att-voile .att-cult h3::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
-#att-voile .att-cult ul{margin:0;padding:0;list-style:none;line-height:1.4}
+#att-voile .att-cult ul{margin:0;padding:0;list-style:none;line-height:1.4;
+  flex:1;display:flex;flex-direction:column;justify-content:space-between}
 #att-voile .att-cult li{position:relative;padding:3px 0 3px 11px;color:#3a3226;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 #att-voile .att-cult li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;
@@ -543,7 +550,7 @@
   function alea(graine) { return () => (graine = (graine * 16807) % 2147483647) / 2147483647; }
   function trameGenerique() {
     const r = alea(75008); // clin d'œil au code postal du cabinet
-    const NX = 12, NY = 5, W = 1000, H = 320, mx = W / NX, my = H / NY;
+    const NX = 22, NY = 4, W = 1540, H = 250, mx = W / NX, my = H / NY;
     const px = [], sommets = [];
     for (let j = 0; j <= NY; j++) { sommets[j] = []; for (let i = 0; i <= NX; i++) {
       const bx = i === 0 || i === NX ? 0 : (r() - .5) * mx * .55;
@@ -1042,5 +1049,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster(); } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.0" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "2.2" };
 })();
