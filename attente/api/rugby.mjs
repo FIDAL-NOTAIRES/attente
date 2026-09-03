@@ -174,15 +174,39 @@ export default async function handler(req, res) {
       return;
     }
 
-    const classement = normaliser(trouve.entete, trouve.corps, combien);
-    const journee = classement.reduce((m, l) => Math.max(m, l.joues || 0), 0);
+    let classement = normaliser(trouve.entete, trouve.corps, combien);
+    let journee = classement.reduce((m, l) => Math.max(m, l.joues || 0), 0);
+    let final = false;
+
+    /* Saison pas encore entamee : quatorze clubs a egalite a zero ne veut rien
+       dire sur un panneau. On affiche le classement final de la saison passee
+       jusqu'a la premiere journee. Vaut aussi pour l'intersaison de juin a
+       septembre, soit trois mois par an. */
+    if (journee === 0 && !repli) {
+      const precedente = saisonPrecedente(saison);
+      try {
+        const t2 = trouverClassement(await pageWiki(precedente));
+        if (t2) {
+          const c2 = normaliser(t2.entete, t2.corps, combien);
+          const j2 = c2.reduce((m, l) => Math.max(m, l.joues || 0), 0);
+          if (j2 > 0) {
+            classement = c2;
+            journee = j2;
+            saison = precedente;
+            final = true;
+          }
+        }
+      } catch (_) { /* le repli est un confort, jamais un motif d'echec */ }
+    }
 
     const charge = {
       competition: 'Top 14',
       saison,
       journee,
       demarree: journee > 0,
+      classementFinal: final,
       saisonDeRepli: repli,
+      intitule: 'Top 14 ' + saison + (final ? ' \u2014 classement final' : ''),
       source: 'fr.wikipedia.org',
       classement,
       maj: new Date().toISOString()
