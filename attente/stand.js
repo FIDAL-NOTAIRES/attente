@@ -339,7 +339,10 @@
           l'échelle avec un scale() : la carte se plaçait par rapport à ce bloc
           et atterrissait n'importe où. Hors de cet arbre, plus de problème. */
     + '.att-stand-carte{position:fixed;left:50%;transform:translateX(-50%);bottom:118px;'
-      + 'z-index:60;width:min(568px,calc(100vw - 32px));'
+      /* ⚠ AU-DESSUS du voile d'ATTENTE, qui est en z-index 99999 avec un fond
+         opaque. Accrochée au corps du document, la carte passait dessous et
+         devenait invisible alors qu'elle était bien là. */
+      + 'z-index:100050;width:min(568px,calc(100vw - 32px));'
       + 'border-radius:12px;overflow:hidden;background:' + C.nuit + ';'
       + 'border:1.5px solid ' + C.canard + ';box-shadow:0 18px 44px rgba(0,0,0,.55);display:none}'
     + '.att-stand-carte.att-on{display:block}'
@@ -722,6 +725,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '2.4-pixel'
+    version: '2.5-pixel'
   };
 })();
