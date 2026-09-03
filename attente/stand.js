@@ -200,7 +200,12 @@
     '............KKKKKKKKKKKK..............',
     '......................................'
   ];
-  var ANCRES = [[13, 11], [-2, 7], [24, 7]];
+  /* Points d'accroche des canards brandis, dans les unités du sprite :
+     la gueule d'abord, puis la patte gauche, puis la droite. Les ordonnées
+     sont volontairement HAUTES — au premier essai, celui de la gueule tombait
+     pile sur la ligne d'herbe et le premier plan l'avalait. */
+  var ANCRES = [[12, 8], [-1, 8], [27, 8]];
+  var ECH_PRISE = 0.7;                    // 16 x 0,7 ≈ 11 unités, bien lisible
   function chienSVG(ech) {
     return svgPx(38, 18, runs(CHIEN_FACE, PAL_CHIEN)
       + '<g class="att-prise"></g>', ech);
@@ -542,7 +547,7 @@
     var h = '';
     for (var k = 0; k < pris.length; k++) {
       var a = ANCRES[k];
-      h += '<g transform="translate(' + a[0] + ',' + a[1] + ') scale(.55)">'
+      h += '<g transform="translate(' + a[0] + ',' + a[1] + ') scale(' + ECH_PRISE + ')">'
         + runs(MORT, pris[k].esp.pal) + '</g>';
       retirer(pris[k]);
     }
@@ -674,6 +679,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '6.0-chien-de-face'
+    version: '6.1-chien-de-face'
   };
 })();
