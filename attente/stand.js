@@ -173,39 +173,36 @@
   /* Chien de Duck Hunt : orange, oreille noire tombante, gros œil, museau
      blanc à truffe noire, queue dressée. 32 x 22, sol à y=21, gueule vers
      (28,12). Mon springer réaliste jurait avec le reste de la scène. */
-  /* Chien 20 x 15, sol à y=14, gueule vers (13,8). Oreille noire tombante
-     SUR LA TÊTE — au premier jet elle tombait au milieu du dos et l'animal
-     se lisait comme un renard. */
-  var PAL_CHIEN = { K:'#000000', O:'#E45C10', o:'#A83800', W:'#FCFCFC' };
-  var CHIEN_HAUT = [
-    '..K.................',
-    '..KOK...............',
-    '..KOK....KKKKK......',
-    '..KOKKKKKOOOOOKK....',
-    '.KOOOOOOOOOOOOOOKK..',
-    '.KOOOOOOOOKKKOWOOOK.',
-    '.KooOOOOOOKKKOWOOOOK',
-    '.KooOOOOOOKKKOOWWWWK',
-    '..KooOOOOOKKKWWWWWWK',
-    '..KKooOOOOKKKWWWWWKK',
-    '....KKoOOOKKKWWWWKK.',
-    '......KKKKKKKKKKK...'
+  /* Chien DE FACE, qui JAILLIT des herbes en brandissant ses canards, puis y
+     replonge. C'est l'image mentale de Duck Hunt, et je l'avais manquée : mon
+     chien traversait la scène de profil comme dans un jeu de plateforme,
+     alors que celui du jeu surgit et se présente au joueur.
+     38 x 18. Trois points d'accroche pour les canards : la gueule d'abord,
+     puis les deux pattes. */
+  var PAL_CHIEN = { K:'#000000', O:'#E45C10', o:'#A83800', W:'#FCFCFC', R:'#C43B2E' };
+  var CHIEN_FACE = [
+    '...........KK..........KK.............',
+    '..........KooK........KooK............',
+    '..........KoooKKKKKKKKoooK............',
+    '..........KoooOOOOOOOOoooK............',
+    '..........KoooOOOOOOOOoooK............',
+    '..........KooOWKOOOOKWOooK............',
+    '..........KooOKWOOOOWKOooK............',
+    '...........KoOOOOOOOOOOoK.............',
+    '...KKK.....KOOOOWWWWOOOOK.....KKK.....',
+    '..KOOOK....KOOOWWWWWWOOOK....KOOOK....',
+    '..KOOOOK....KOWWWKKWWWOK....KOOOOK....',
+    '..KOOOOOKKKKKOWWWKKWWWOKKKKKOOOOOK....',
+    '..KoOOOOOOOOOOKWWWWWWWWKOOOOOOOOoK....',
+    '...KoooOOOOOOOKKWWRRWWKKOOOOOOooK.....',
+    '.....KKKoooOOOOKKKKKKOOOOoooKKK.......',
+    '........KKKKoooOOOOOOoooKKKK..........',
+    '............KKKKKKKKKKKK..............',
+    '......................................'
   ];
-  var PATTES_A = [
-    '.....KWK..KOK.......',
-    '.....KWK..KOK.......',
-    '.....KKK..KKK.......'
-  ];
-  var PATTES_B = [
-    '....KWK....KOK......',
-    '....KWK.....KOK.....',
-    '....KKK.....KKK.....'
-  ];
+  var ANCRES = [[13, 11], [-2, 7], [24, 7]];
   function chienSVG(ech) {
-    var haut = runs(CHIEN_HAUT, PAL_CHIEN);
-    return svgPx(20, 15, ''
-      + '<g class="att-f0">' + haut + runs(PATTES_A, PAL_CHIEN, 0, 12) + '</g>'
-      + '<g class="att-f1">' + haut + runs(PATTES_B, PAL_CHIEN, 0, 12) + '</g>'
+    return svgPx(38, 18, runs(CHIEN_FACE, PAL_CHIEN)
       + '<g class="att-prise"></g>', ech);
   }
 
@@ -219,6 +216,21 @@
      564 x 300 px, soit 6 px par pixel comme les sprites.
      Les ronds sont des pastilles de pixels et non des cercles SVG : sur une
      grille, un cercle lissé trahit immédiatement. */
+  /* Bande d'herbe redessinée EN PREMIER PLAN, par-dessus le chien : c'est
+     elle qui le masque à mi-corps quand il jaillit. Les canards tombés, eux,
+     passent au-dessus d'elle — sinon ils disparaîtraient dans l'herbe. */
+  function herbeAvant(W, H) {
+    var s = rect(0, 0, W, H, PAL_DEC.herbe) + rect(0, H - 3, W, 3, PAL_DEC.herbeF);
+    for (var x = 0; x < W; x += 3) {
+      var h = 2 + ((x * 7) % 3);
+      s += rect(x, -h, 2, h, PAL_DEC.herbe) + rect(x + 1, -h + 1, 1, h - 1, PAL_DEC.herbeF);
+    }
+    for (var t = 0; t < 16; t++) {
+      s += rect((t * 11) % W, 2 + ((t * 5) % 8), 2, 1, PAL_DEC.herbeF);
+    }
+    return s;
+  }
+
   function rect(x, y, w, h, f) {
     return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h
       + '" fill="' + f + '"/>';
@@ -324,8 +336,11 @@
     + '@keyframes att-p1{0%,33.3%{opacity:0}33.4%,66.6%{opacity:1}66.7%,100%{opacity:0}}'
     + '@keyframes att-p2{0%,66.6%{opacity:0}66.7%,100%{opacity:1}}'
 
-    + '.att-chien{position:absolute;left:0;bottom:0;will-change:transform;'
+    + '.att-chien{position:absolute;left:0;top:0;will-change:transform;'
       + 'pointer-events:none;z-index:3;line-height:0}'
+    + '.att-avant{position:absolute;left:0;right:0;bottom:0;z-index:5;'
+      + 'pointer-events:none;image-rendering:pixelated}'
+    + '.att-canard.att-gisant{z-index:6}'
     + '.att-chien svg{display:block;image-rendering:pixelated}'
     + '.att-chien .att-f0{animation:att-c0 .3s steps(1,end) infinite}'
     + '.att-chien .att-f1{animation:att-c1 .3s steps(1,end) infinite}'
@@ -359,10 +374,10 @@
      6. MOTEUR DE JEU
      ============================================================ */
   var hote = null, racine = null, carte = null, ciel = null, elScore = null;
-  var canards = [], gisants = [], chiens = [];
+  var canards = [], gisants = [];
   var score = 0, p = 0, ouvert = false, raf = null;
   var dernier = 0, prochainTir = 0, dernierRare = -1e9, horloge = 0;
-  var MAX_CHIENS = 2, MAX_PRISES = 3, SOL = 80;   // hauteur de la bande d'herbe, en px
+  var MAX_PRISES = 3, SOL = 80;   // hauteur de la bande d'herbe, en px
 
   function lerp(a, b, t) { return a + (b - a) * t; }
   function alea(a, b) { return a + Math.random() * (b - a); }
@@ -398,6 +413,8 @@
       + '<div class="att-ciel">'
       +   '<svg class="att-fond" viewBox="0 0 94 50" preserveAspectRatio="none"'
       +     ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
+      +   '<svg class="att-avant" viewBox="0 0 94 14" preserveAspectRatio="none"'
+      +     ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
       + '</div>'
       + '<div class="att-bareme">' + puce('colvert') + puce('souchet')
       +   puce('sarcelle') + puce('mandarin') + '</div>';
@@ -405,6 +422,8 @@
     ciel = carte.querySelector('.att-ciel');
     elScore = carte.querySelector('.att-stand-score');
     ciel.querySelector('.att-fond').innerHTML = decor(94, 50);
+    ciel.querySelector('.att-avant').innerHTML = herbeAvant(94, 14);
+    ciel.querySelector('.att-avant').style.height = (14 * 6) + 'px';
 
     racine.querySelector('.att-stand-icone')
       .addEventListener('click', function () { ouvert ? replier() : deplier(); });
@@ -492,92 +511,69 @@
   function tir(ev) { pastille(ev, 'att-impact', '', 320); }
   function marque(ev, txt) { pastille(ev, 'att-gain', txt, 820); }
 
-  /* ---------- chiens rapporteurs ----------
-     Un chien ramasse jusqu'à TROIS canards par tournée, et un second
-     n'entre qu'en rafale, par le bord opposé — jamais en file. */
-  function libre() {
-    for (var i = 0; i < gisants.length; i++) if (!gisants[i].reserve) return gisants[i];
-    return null;
-  }
-  function plusProche(x) {
-    var best = null, d = 1e9;
-    for (var i = 0; i < gisants.length; i++) {
-      var g = gisants[i];
-      if (g.reserve) continue;
-      var e = Math.abs(g.x - x);
-      if (e < d) { d = e; best = g; }
-    }
-    return best;
-  }
-  function creerChien(W) {
-    var cible = libre();
-    if (!cible) return;
-    var dir = chiens.length === 0 ? (cible.x < W / 2 ? 1 : -1) : -chiens[0].dir;
-    var el = document.createElement('div');
-    el.className = 'att-chien';
-    el.innerHTML = chienSVG(6);
-    ciel.appendChild(el);
-    cible.reserve = true;
-    chiens.push({ el: el, prise: el.querySelector('.att-prise'),
-      x: dir === 1 ? -120 : W + 120, dir: dir, etat: 'aller',
-      cible: cible, pause: 0, charges: [] });
-  }
-  /* Le rapport est dimensionné dans les UNITÉS DU SPRITE DU CHIEN (34 de
-     large), pas en pixels d'écran : en pixels, il couvrait toute sa tête. */
-  function dessinerPrise(d) {
-    if (!d.charges.length) { d.prise.innerHTML = ''; return; }
-    var h = '';
-    for (var i = 0; i < d.charges.length; i++) {
-      h += '<g transform="translate(' + (11 + i) + ',' + (6 + i * 2)
-        + ') scale(.5)">' + runs(MORT, d.charges[i].esp.pal) + '</g>';
-    }
-    d.prise.innerHTML = h;
-  }
+  /* ---------- le chien ----------
+     Il attend caché derrière l'herbe. Dès qu'un canard gît, il JAILLIT à
+     l'endroit de la chute en brandissant jusqu'à TROIS oiseaux, les montre
+     une seconde et demie, puis replonge dans les herbes.
+
+     Cette mise en scène remplace l'ancienne, où le chien traversait la scène
+     de profil et rentrait par un bord. Elle rend caduque la règle des deux
+     chiens simultanés décidée pour l'ancienne : en rafale, le même chien
+     enchaîne simplement un second bond dès qu'il est redescendu. */
+  var chien = null;
+
   function retirer(g) {
     var i = gisants.indexOf(g); if (i >= 0) gisants.splice(i, 1);
     var j = canards.indexOf(g); if (j >= 0) canards.splice(j, 1);
     if (g.el) g.el.remove();
   }
-  function majChiens(dt) {
-    var W = ciel.clientWidth, vitesse = 200;
-    if (libre() && chiens.length < MAX_CHIENS) {
-      if (chiens.length === 0 || gisants.length >= 3) creerChien(W);
+
+  function creerChien() {
+    var pris = gisants.slice(0, MAX_PRISES);
+    if (!pris.length) return;
+    var sx = 0;
+    for (var i = 0; i < pris.length; i++) sx += pris[i].x + pris[i].l / 2;
+    sx /= pris.length;
+    var W = ciel.clientWidth, larg = 38 * 6;
+    var el = document.createElement('div');
+    el.className = 'att-chien';
+    el.innerHTML = chienSVG(6);
+    ciel.appendChild(el);
+    var h = '';
+    for (var k = 0; k < pris.length; k++) {
+      var a = ANCRES[k];
+      h += '<g transform="translate(' + a[0] + ',' + a[1] + ') scale(.55)">'
+        + runs(MORT, pris[k].esp.pal) + '</g>';
+      retirer(pris[k]);
     }
-    for (var i = chiens.length - 1; i >= 0; i--) {
-      var d = chiens[i];
-      if (d.etat === 'aller') {
-        if (!d.cible || !d.cible.el.isConnected) { d.cible = null; d.etat = 'retour'; }
-        else {
-          var but = d.cible.x + d.cible.l * .3;
-          d.x += d.dir * vitesse * dt;
-          if ((d.dir === 1 && d.x >= but) || (d.dir === -1 && d.x <= but)) {
-            d.x = but; d.etat = 'ramasse'; d.pause = .36;
-            d.el.classList.add('att-arret');
-          }
-        }
-      } else if (d.etat === 'ramasse') {
-        d.pause -= dt;
-        if (d.pause <= 0) {
-          if (d.cible) { d.charges.push(d.cible); retirer(d.cible); d.cible = null; dessinerPrise(d); }
-          var suite = d.charges.length < MAX_PRISES ? plusProche(d.x) : null;
-          if (suite) {
-            suite.reserve = true; d.cible = suite;
-            d.dir = suite.x > d.x ? 1 : -1;
-            d.etat = 'aller';
-          } else {
-            d.etat = 'retour';
-            d.dir = d.x < W / 2 ? -1 : 1;
-          }
-          d.el.classList.remove('att-arret');
-        }
-      } else {
-        d.x += d.dir * vitesse * dt;
-        if (d.dir === 1 ? d.x > W + 150 : d.x < -150) {
-          d.el.remove(); chiens.splice(i, 1); continue;
-        }
-      }
-      d.el.style.transform = 'translate3d(' + Math.round(d.x) + 'px,0,0) scaleX(' + d.dir + ')';
+    el.querySelector('.att-prise').innerHTML = h;
+    chien = {
+      el: el, t: 0, etat: 'monte',
+      x: Math.max(2, Math.min(W - larg - 2, sx - larg / 2)), y: 0
+    };
+  }
+
+  function majChien(dt) {
+    if (!chien) { if (gisants.length) creerChien(); return; }
+    var H = ciel.clientHeight, solY = H - SOL;
+    // hors champ / sorti : 14 des 18 rangs du sprite passent au-dessus de
+    // l'herbe, soit la tête, les épaules et les canards brandis
+    var cache = solY + 24, montre = solY - 84;
+    var d = chien;
+    d.t += dt;
+    if (d.etat === 'monte') {
+      var k = Math.min(1, d.t / 0.32);
+      d.y = cache + (montre - cache) * k;
+      if (k >= 1) { d.etat = 'montre'; d.t = 0; }
+    } else if (d.etat === 'montre') {
+      d.y = montre;
+      if (d.t > 1.6) { d.etat = 'plonge'; d.t = 0; }
+    } else {
+      var k2 = Math.min(1, d.t / 0.32);
+      d.y = montre + (cache - montre) * k2;
+      if (k2 >= 1) { d.el.remove(); chien = null; return; }
     }
+    d.el.style.transform = 'translate3d(' + Math.round(d.x) + 'px,' + Math.round(d.y) + 'px,0)';
   }
 
   function boucle() {
@@ -618,6 +614,7 @@
           c.el.innerHTML = canardMortSVG(c.esp);   // ailes closes, tête pendante
           c.l = 16 * c.esp.ech;
           c.gisant = true;
+          c.el.classList.add('att-gisant');
           gisants.push(c);
           while (gisants.length > 8) {   /* le chien ne suit plus : on désencombre */
             var vieux = gisants.shift();
@@ -628,7 +625,7 @@
       }
       poser(c);
     }
-    majChiens(dt);
+    majChien(dt);
   }
 
   /* ============================================================
@@ -658,8 +655,7 @@
     demonter: function () {
       this.arreter();
       canards.length = 0; gisants.length = 0;
-      chiens.forEach(function (d) { d.el.remove(); });
-      chiens.length = 0;
+      if (chien) { chien.el.remove(); chien = null; }
       if (racine) { racine.remove(); racine = null; }
       if (carte) { carte.remove(); carte = null; }
       score = 0;
@@ -671,13 +667,13 @@
     remiseAZero: function () {
       this.arreter();
       canards.forEach(function (c) { c.el.remove(); });
-      chiens.forEach(function (d) { d.el.remove(); });
-      canards.length = 0; gisants.length = 0; chiens.length = 0;
+      if (chien) { chien.el.remove(); chien = null; }
+      canards.length = 0; gisants.length = 0;
       score = 0; horloge = 0; dernierRare = -1e9;
       if (elScore) elScore.innerHTML = '0<span>points</span>';
       return this;
     },
     score: function () { return score; },
-    version: '5.0-basse-resolution'
+    version: '6.0-chien-de-face'
   };
 })();
