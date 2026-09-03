@@ -35,6 +35,13 @@
     jauneForme: '#FFE764', jauneTexte: '#FFC900'
   };
 
+  /* ⚠ DÉCLARÉ ICI, avant tout le reste. ECH est utilisé dès la définition des
+     espèces (section 2) ; laissé avec le reste de l'état du jeu en section 6,
+     il valait `undefined` au moment de cette définition — les canards auraient
+     été dessinés à une échelle indéfinie. Le piège classique du var hoisté :
+     le nom existe, la valeur pas encore. */
+  var ECH = 3, SCENE_L = 188, SCENE_H = 100;
+
   /* ============================================================
      1. MOTEUR DE SPRITES
      ============================================================ */
@@ -132,19 +139,19 @@
   ];
 
   var ESPECES = {
-    colvert: { nom: 'Colvert', points: 1, ech: 6, vitesse: 1.00, poids: 50,
+    colvert: { nom: 'Colvert', points: 1, ech: ECH, vitesse: 1.00, poids: 50,
       teinte: '#1D7A3E',
       pal: { K:'#000000', B:'#181818', V:'#FCFCFC', A:'#FCFCFC', o:'#BCBCBC',
              T:'#00A844', N:'#FCFCFC', Y:'#FC9838' } },
-    souchet: { nom: 'Souchet', points: 2, ech: 6, vitesse: 1.18, poids: 30,
+    souchet: { nom: 'Souchet', points: 2, ech: ECH, vitesse: 1.18, poids: 30,
       teinte: '#A8531F',
       pal: { K:'#000000', B:'#0058F8', V:'#FCFCFC', A:'#FCFCFC', o:'#A4C8FC',
              T:'#00A844', N:'#FCFCFC', Y:'#FC9838' } },
-    sarcelle: { nom: 'Sarcelle', points: 3, ech: 6, vitesse: 1.45, poids: 20,
+    sarcelle: { nom: 'Sarcelle', points: 3, ech: ECH, vitesse: 1.45, poids: 20,
       teinte: '#7A3B22',
       pal: { K:'#000000', B:'#A81000', V:'#FCFCFC', A:'#FCFCFC', o:'#F0A0A0',
              T:'#503000', N:'#FCFCFC', Y:'#FC9838' } },
-    mandarin: { nom: 'Mandarin', points: 5, ech: 6, vitesse: 3.40, poids: 0,
+    mandarin: { nom: 'Mandarin', points: 5, ech: ECH, vitesse: 3.40, poids: 0,
       teinte: '#D9772B',
       pal: { K:'#000000', B:'#F87800', V:'#FCFCFC', A:'#FCE0A0', o:'#D89020',
              T:'#00A844', N:'#FCFCFC', Y:'#F83800' } }
@@ -225,13 +232,13 @@
      elle qui le masque à mi-corps quand il jaillit. Les canards tombés, eux,
      passent au-dessus d'elle — sinon ils disparaîtraient dans l'herbe. */
   function herbeAvant(W, H) {
-    var s = rect(0, 0, W, H, PAL_DEC.herbe) + rect(0, H - 3, W, 3, PAL_DEC.herbeF);
-    for (var x = 0; x < W; x += 3) {
-      var h = 2 + ((x * 7) % 3);
-      s += rect(x, -h, 2, h, PAL_DEC.herbe) + rect(x + 1, -h + 1, 1, h - 1, PAL_DEC.herbeF);
+    var s = rect(0, 0, W, H, PAL_DEC.herbe) + rect(0, H - 6, W, 6, PAL_DEC.herbeF);
+    for (var x = 0; x < W; x += 5) {
+      var h = 3 + ((x * 7) % 5);
+      s += rect(x, -h, 3, h, PAL_DEC.herbe) + rect(x + 1, -h + 2, 2, h - 2, PAL_DEC.herbeF);
     }
-    for (var t = 0; t < 16; t++) {
-      s += rect((t * 11) % W, 2 + ((t * 5) % 8), 2, 1, PAL_DEC.herbeF);
+    for (var t = 0; t < 30; t++) {
+      s += rect((t * 23) % W, 4 + ((t * 7) % 16), 3, 2, PAL_DEC.herbeF);
     }
     return s;
   }
@@ -253,26 +260,35 @@
   var PAL_DEC = {ciel:'#6BC0F0',herbe:'#58D858',herbeF:'#00A844',herbeO:'#007828',
    tronc:'#B53120',troncO:'#7C1C10',feuille:'#58D858',feuilleF:'#00A844'};
   
-  /* Scene BASSE RESOLUTION : 94 x 50 unites pour 564 x 300 px, soit 6 px par
-     pixel. C'etait la clef : mes 189 x 99 donnaient des pixels de 3 px, un
-     dessin fin, et donc du pixel art moderne au lieu de la NES. */
-  function decor(W,H){
-    var s=rect(0,0,W,H,PAL_DEC.ciel);
-    var yH=H-14;
-    s+=rect(0,yH,W,H-yH,PAL_DEC.herbe);
-    s+=rect(0,H-3,W,3,PAL_DEC.herbeF);
-    for(var x=0;x<W;x+=3){var h=2+((x*7)%3);s+=rect(x,yH-h,2,h,PAL_DEC.herbe)+rect(x+1,yH-h+1,1,h-1,PAL_DEC.herbeF);}
-    for(var t=0;t<16;t++){var tx=(t*11)%W;s+=rect(tx,yH+2+((t*5)%8),2,1,PAL_DEC.herbeF);}
-    var ax=Math.round(W*0.28),sol=yH+2;
-    s+=rect(ax-2,sol-14,4,14,PAL_DEC.tronc)+rect(ax+1,sol-14,1,14,PAL_DEC.troncO);
-    s+=rect(ax-5,sol-12,3,2,PAL_DEC.tronc)+rect(ax+2,sol-13,3,2,PAL_DEC.tronc);
-    s+=blob(ax,sol-20,11,6,PAL_DEC.feuilleF);
-    s+=blob(ax-9,sol-16,6,4,PAL_DEC.feuilleF);
-    s+=blob(ax+9,sol-17,7,4,PAL_DEC.feuilleF);
-    s+=blob(ax-2,sol-23,8,4,PAL_DEC.feuille);
-    s+=blob(ax+7,sol-18,5,3,PAL_DEC.feuille);
-    [[Math.round(W*0.62),5,3],[Math.round(W*0.86),4,2]].forEach(function(b){
-      s+=blob(b[0],yH+1,b[1],b[2],PAL_DEC.herbeF);});
+  /* ⚠ ÉCHELLE — l'erreur symétrique de la précédente. L'écran de Duck Hunt
+     fait 256 pixels de large ; notre carte en fait 564, donc l'émulation
+     fidèle demande ~2 points d'écran par pixel, pas 6. À 6 la scène ne faisait
+     que 94 unités : c'était Duck Hunt vu à la loupe, canards à 17 % de la
+     largeur au lieu de 9, chien à 40 % au lieu de 20. Les sprites étaient
+     bons, c'est le CADRAGE qui était faux. */
+  function decor(W, H) {
+    var s = rect(0, 0, W, H, PAL_DEC.ciel);
+    var yH = H - 26;                            // bande d'herbe : un quart de l'écran
+    s += rect(0, yH, W, H - yH, PAL_DEC.herbe);
+    s += rect(0, H - 6, W, 6, PAL_DEC.herbeF);
+    for (var x = 0; x < W; x += 5) {
+      var h = 3 + ((x * 7) % 5);
+      s += rect(x, yH - h, 3, h, PAL_DEC.herbe) + rect(x + 1, yH - h + 2, 2, h - 2, PAL_DEC.herbeF);
+    }
+    for (var t = 0; t < 30; t++) {
+      s += rect((t * 23) % W, yH + 4 + ((t * 7) % 16), 3, 2, PAL_DEC.herbeF);
+    }
+    var ax = Math.round(W * 0.26), sol = yH + 4;
+    s += rect(ax - 4, sol - 30, 8, 30, PAL_DEC.tronc) + rect(ax + 2, sol - 30, 2, 30, PAL_DEC.troncO);
+    s += rect(ax - 10, sol - 26, 6, 4, PAL_DEC.tronc) + rect(ax + 4, sol - 28, 6, 4, PAL_DEC.tronc);
+    s += blob(ax, sol - 42, 22, 12, PAL_DEC.feuilleF);
+    s += blob(ax - 18, sol - 34, 12, 8, PAL_DEC.feuilleF);
+    s += blob(ax + 18, sol - 36, 14, 8, PAL_DEC.feuilleF);
+    s += blob(ax - 4, sol - 48, 16, 8, PAL_DEC.feuille);
+    s += blob(ax + 14, sol - 38, 10, 6, PAL_DEC.feuille);
+    [[Math.round(W * 0.64), 10, 6], [Math.round(W * 0.87), 8, 4]].forEach(function (b) {
+      s += blob(b[0], yH + 2, b[1], b[2], PAL_DEC.herbeF);
+    });
     return s;
   }
 
@@ -382,7 +398,7 @@
   var canards = [], gisants = [];
   var score = 0, p = 0, ouvert = false, raf = null;
   var dernier = 0, prochainTir = 0, dernierRare = -1e9, horloge = 0;
-  var MAX_PRISES = 3, SOL = 80;   // hauteur de la bande d'herbe, en px
+  var MAX_PRISES = 3, SOL = 26 * ECH;   // hauteur de la bande d'herbe, en px
 
   function lerp(a, b, t) { return a + (b - a) * t; }
   function alea(a, b) { return a + Math.random() * (b - a); }
@@ -406,7 +422,7 @@
     };
     racine.innerHTML = ''
       + '<button class="att-stand-icone" type="button" aria-label="Ouvrir le stand de tir">'
-      +   canardFixe(ESPECES.colvert, 3) + '<span>Stand de tir</span></button>';
+      +   canardFixe(ESPECES.colvert, 4) + '<span>Stand de tir</span></button>';
 
     carte = document.createElement('div');
     carte.className = 'att-stand-carte';
@@ -416,9 +432,9 @@
       + '<div class="att-stand-tete"><h4>Stand de tir</h4>'
       +   '<div class="att-stand-score">0<span>points</span></div></div>'
       + '<div class="att-ciel">'
-      +   '<svg class="att-fond" viewBox="0 0 94 50" preserveAspectRatio="none"'
+      +   '<svg class="att-fond" viewBox="0 0 188 100" preserveAspectRatio="none"'
       +     ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
-      +   '<svg class="att-avant" viewBox="0 0 94 14" preserveAspectRatio="none"'
+      +   '<svg class="att-avant" viewBox="0 0 188 26" preserveAspectRatio="none"'
       +     ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
       + '</div>'
       + '<div class="att-bareme">' + puce('colvert') + puce('souchet')
@@ -426,9 +442,9 @@
 
     ciel = carte.querySelector('.att-ciel');
     elScore = carte.querySelector('.att-stand-score');
-    ciel.querySelector('.att-fond').innerHTML = decor(94, 50);
-    ciel.querySelector('.att-avant').innerHTML = herbeAvant(94, 14);
-    ciel.querySelector('.att-avant').style.height = (14 * 6) + 'px';
+    ciel.querySelector('.att-fond').innerHTML = decor(SCENE_L, SCENE_H);
+    ciel.querySelector('.att-avant').innerHTML = herbeAvant(SCENE_L, 26);
+    ciel.querySelector('.att-avant').style.height = (26 * ECH) + 'px';
 
     racine.querySelector('.att-stand-icone')
       .addEventListener('click', function () { ouvert ? replier() : deplier(); });
@@ -539,10 +555,10 @@
     var sx = 0;
     for (var i = 0; i < pris.length; i++) sx += pris[i].x + pris[i].l / 2;
     sx /= pris.length;
-    var W = ciel.clientWidth, larg = 38 * 6;
+    var W = ciel.clientWidth, larg = 38 * ECH;
     var el = document.createElement('div');
     el.className = 'att-chien';
-    el.innerHTML = chienSVG(6);
+    el.innerHTML = chienSVG(ECH);
     ciel.appendChild(el);
     var h = '';
     for (var k = 0; k < pris.length; k++) {
@@ -563,7 +579,7 @@
     var H = ciel.clientHeight, solY = H - SOL;
     // hors champ / sorti : 14 des 18 rangs du sprite passent au-dessus de
     // l'herbe, soit la tête, les épaules et les canards brandis
-    var cache = solY + 24, montre = solY - 84;
+    var cache = solY + 8 * ECH, montre = solY - 14 * ECH;
     var d = chien;
     d.t += dt;
     if (d.etat === 'monte') {
@@ -679,6 +695,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '6.1-chien-de-face'
+    version: '7.0-proportions-nes'
   };
 })();
