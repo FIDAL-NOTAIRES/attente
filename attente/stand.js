@@ -87,7 +87,14 @@
      saturé, ventre blanc, tête verte, bec orange. Mes canards gris se
      perdaient sur le ciel ; ici chaque espèce se reconnaît d'un coup d'œil.
      26 x 9, posé à l'ordonnée 9 — les rangs 0 à 8 sont pour l'aile. */
-  /* ⚠ ENVERGURE. Les captures du jeu (03/09) montrent DEUX ailes larges
+  /* ⚠ AILE EN TROIS ZONES (03/09). Une aile de canard n'est pas d'un blanc
+     uniforme : rémiges primaires sombres au bout (P), couvertures claires au
+     milieu (A), et le MIROIR à la base (S) — bleu chez le colvert, vert chez
+     la sarcelle et le souchet, orangé chez le mandarin. C'est le miroir qui
+     donne la couleur et permet de reconnaître l'espèce en vol, même quand le
+     corps est de dos.
+
+     ⚠ ENVERGURE. Les captures du jeu (03/09) montrent DEUX ailes larges
      déployées de part et d'autre du corps, sur une envergure d'environ deux
      fois sa longueur. Je dessinais une seule lame étroite dressée : l'oiseau
      se lisait comme une mouche. Les deux ailes battent ENSEMBLE — relevées
@@ -104,38 +111,38 @@
   ];
   var AILE_HAUTE = [
     '..KK................',
-    '..KAAK..............',
-    '..KAAAK.............',
-    '...KAAAK............',
-    '...KAAAAK...........',
-    '....KAAAAK..........',
-    '....KAAAAK..........'
+    '..KPPK..............',
+    '..KPPAK.............',
+    '...KPAAK............',
+    '...KPAAAK...........',
+    '....KAASSK..........',
+    '....KASSSK..........'
   ];
   var AILE_MI_HAUT = [
     '....................',
     '....................',
     'K...................',
-    'KAAK................',
-    '.KAAAK..............',
-    '..KAAAAK............',
-    '...KAAAAK...........'
+    'KPPK................',
+    '.KPPAK..............',
+    '..KPAASK............',
+    '...KASSSK...........'
   ];
   var AILE_MI_BAS = [
-    '...KAAAAK...........',
-    '..KAAAAK............',
-    '.KAAAK..............',
-    'KAAK................',
+    '...KASSSK...........',
+    '..KPAASK............',
+    '.KPAAK..............',
+    'KPPK................',
     'K...................',
     '....................',
     '....................'
   ];
   var AILE_BASSE = [
-    '....KAAAAK..........',
-    '....KAAAAK..........',
-    '...KAAAAK...........',
-    '...KAAAK............',
-    '..KAAAK.............',
-    '..KAAK..............',
+    '....KASSSK..........',
+    '....KAASSK..........',
+    '...KPAAAK...........',
+    '...KPAAK............',
+    '..KPPAK.............',
+    '..KPPK..............',
     '..KK................'
   ];
   var AILE_VIDE = [
@@ -144,8 +151,8 @@
   var MORT = [
     '....KKKKKKKK........',
     '..KKBBAAAABBKKKK....',
-    'KAAABAAAAAABBTTTK...',
-    'KAAAKAAAAAVVBTKKTKYY',
+    'KAAABAAAASSBBTTTK...',
+    'KAAAKPAAAAVVBTKKTKYY',
     '.KKKKVVVVVVVKTTTTKYY',
     '....KKKKKKKKKKTKKK..'
   ];
@@ -153,19 +160,23 @@
   var ESPECES = {
     colvert: { nom: 'Colvert', points: 1, ech: ECH, vitesse: 1.00, poids: 50,
       teinte: '#1D7A3E',
-      pal: { K:'#000000', B:'#181818', V:'#FCFCFC', A:'#FCFCFC',
+      pal: { K:'#000000', B:'#181818', V:'#FCFCFC', A:'#E8E8E0',
+             P:'#585860', S:'#2848C8',
              T:'#00A844', N:'#FCFCFC', Y:'#FC9838' } },
     souchet: { nom: 'Souchet', points: 2, ech: ECH, vitesse: 1.18, poids: 30,
       teinte: '#A8531F',
-      pal: { K:'#000000', B:'#0058F8', V:'#FCFCFC', A:'#FCFCFC',
+      pal: { K:'#000000', B:'#0058F8', V:'#FCFCFC', A:'#DCE8EE',
+             P:'#48606C', S:'#2F9A5A',
              T:'#00A844', N:'#FCFCFC', Y:'#FC9838' } },
     sarcelle: { nom: 'Sarcelle', points: 3, ech: ECH, vitesse: 1.45, poids: 20,
       teinte: '#7A3B22',
-      pal: { K:'#000000', B:'#A81000', V:'#FCFCFC', A:'#FCFCFC',
+      pal: { K:'#000000', B:'#A81000', V:'#FCFCFC', A:'#E4E4DC',
+             P:'#55554C', S:'#1E7A46',
              T:'#503000', N:'#FCFCFC', Y:'#FC9838' } },
     mandarin: { nom: 'Mandarin', points: 5, ech: ECH, vitesse: 3.40, poids: 0,
       teinte: '#D9772B',
-      pal: { K:'#000000', B:'#F87800', V:'#FCFCFC', A:'#FCE0A0',
+      pal: { K:'#000000', B:'#F87800', V:'#FCFCFC', A:'#F0DCA8',
+             P:'#6A5878', S:'#C86A28',
              T:'#00A844', N:'#FCFCFC', Y:'#F83800' } }
   };
 
@@ -745,6 +756,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '8.2-decor-releve'
+    version: '8.3-ailes-a-miroir'
   };
 })();
