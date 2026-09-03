@@ -329,14 +329,20 @@
     + '.att-stand[data-ouvert="1"] .att-stand-icone{border-color:' + C.jauneForme + ';'
       + 'color:' + C.jauneForme + '}'
 
-    /* ⚠ position FIXE, pas absolue. Ancrée sur l'icône — donc dans le coin de
-       la trame —, la carte grandissait vers le haut et recouvrait la trame,
-       qui doit rester visible comme jauge de progression. Détachée, elle se
-       place dans la bande libre entre les cartes et le cadran de radio. */
+    /* ⚠ La carte est accrochée au CORPS DU DOCUMENT, pas à l'icône.
+       Deux raisons, et la seconde est un piège :
+       1. ancrée sur l'icône — donc dans le coin de la trame —, elle grandissait
+          vers le haut et recouvrait la trame, qui doit rester visible comme
+          jauge de progression ;
+       2. surtout, un position:fixed cesse de se référer à la FENÊTRE dès qu'un
+          ancêtre porte un transform. Or attente.js met son bloc central à
+          l'échelle avec un scale() : la carte se plaçait par rapport à ce bloc
+          et atterrissait n'importe où. Hors de cet arbre, plus de problème. */
     + '.att-stand-carte{position:fixed;left:50%;transform:translateX(-50%);bottom:118px;'
       + 'z-index:60;width:min(568px,calc(100vw - 32px));'
       + 'border-radius:12px;overflow:hidden;background:' + C.nuit + ';'
       + 'border:1.5px solid ' + C.canard + ';box-shadow:0 18px 44px rgba(0,0,0,.55);display:none}'
+    + '.att-stand-carte.att-on{display:block}'
     + '.att-stand[data-ouvert="1"] .att-stand-carte{display:block}'
     + '.att-stand-tete{display:flex;align-items:baseline;justify-content:space-between;'
       + 'gap:12px;padding:7px 12px 5px;border-bottom:1px solid rgba(109,213,220,.25)}'
@@ -396,7 +402,7 @@
   /* ============================================================
      6. MOTEUR DE JEU
      ============================================================ */
-  var hote = null, racine = null, ciel = null, elScore = null;
+  var hote = null, racine = null, carte = null, ciel = null, elScore = null;
   var canards = [], gisants = [], chiens = [];
   var score = 0, p = 0, ouvert = false, raf = null;
   var dernier = 0, prochainTir = 0, dernierRare = -1e9, horloge = 0;
@@ -423,32 +429,38 @@
         + ESPECES[k].nom + ' <b>' + ESPECES[k].points + '</b></span>';
     };
     racine.innerHTML = ''
-      + '<div class="att-stand-carte" role="group" aria-label="Stand de tir">'
-      +   '<div class="att-stand-tete"><h4>Stand de tir</h4>'
-      +     '<div class="att-stand-score">0<span>points</span></div></div>'
-      +   '<div class="att-ciel">'
-      +     '<svg class="att-fond" viewBox="0 0 189 99" preserveAspectRatio="none"'
-      +       ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
-      +   '</div>'
-      +   '<div class="att-bareme">' + puce('colvert') + puce('souchet')
-      +     puce('sarcelle') + puce('mandarin') + '</div>'
-      + '</div>'
       + '<button class="att-stand-icone" type="button" aria-label="Ouvrir le stand de tir">'
       +   canardFixe(ESPECES.colvert, 2) + '<span>Stand de tir</span></button>';
 
-    ciel = racine.querySelector('.att-ciel');
-    elScore = racine.querySelector('.att-stand-score');
+    carte = document.createElement('div');
+    carte.className = 'att-stand-carte';
+    carte.setAttribute('role', 'group');
+    carte.setAttribute('aria-label', 'Stand de tir');
+    carte.innerHTML = ''
+      + '<div class="att-stand-tete"><h4>Stand de tir</h4>'
+      +   '<div class="att-stand-score">0<span>points</span></div></div>'
+      + '<div class="att-ciel">'
+      +   '<svg class="att-fond" viewBox="0 0 189 99" preserveAspectRatio="none"'
+      +     ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
+      + '</div>'
+      + '<div class="att-bareme">' + puce('colvert') + puce('souchet')
+      +   puce('sarcelle') + puce('mandarin') + '</div>';
+
+    ciel = carte.querySelector('.att-ciel');
+    elScore = carte.querySelector('.att-stand-score');
     ciel.querySelector('.att-fond').innerHTML = decor(189, 99);
 
     racine.querySelector('.att-stand-icone')
       .addEventListener('click', function () { ouvert ? replier() : deplier(); });
     ciel.addEventListener('pointerdown', tir);
     hote.appendChild(racine);
+    document.body.appendChild(carte);
   }
 
   function deplier() {
     ouvert = true;
     racine.setAttribute('data-ouvert', '1');
+    carte.classList.add('att-on');
     var b = racine.querySelector('.att-stand-icone');
     b.querySelector('span').textContent = 'Replier';
     b.setAttribute('aria-label', 'Replier le stand de tir');
@@ -461,6 +473,7 @@
        partie, on ne la remet pas à zéro */
     ouvert = false;
     racine.setAttribute('data-ouvert', '0');
+    carte.classList.remove('att-on');
     var b = racine.querySelector('.att-stand-icone');
     b.querySelector('span').textContent = 'Stand de tir';
     b.setAttribute('aria-label', 'Ouvrir le stand de tir');
@@ -678,6 +691,7 @@
     arreter: function () {
       ouvert = false;
       if (raf) { cancelAnimationFrame(raf); raf = null; }
+      if (carte) carte.classList.remove('att-on');
       if (racine) {
         racine.setAttribute('data-ouvert', '0');
         var b = racine.querySelector('.att-stand-icone');
@@ -691,6 +705,7 @@
       chiens.forEach(function (d) { d.el.remove(); });
       chiens.length = 0;
       if (racine) { racine.remove(); racine = null; }
+      if (carte) { carte.remove(); carte = null; }
       score = 0;
       return this;
     },
@@ -707,6 +722,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '2.3-pixel'
+    version: '2.4-pixel'
   };
 })();
