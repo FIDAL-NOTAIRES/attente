@@ -33,7 +33,7 @@
    script (déduit de currentScript.src) : aucun domaine en dur, le module
    suit son déploiement.
 
-   ⚠ #att-coin, coin bas-gauche de la trame : c'est là que stand.js monte
+   ⚠ #att-coin, coin bas-droit de la trame : c'est là que stand.js monte
    son icône canard et déplie sa carte. Voir chargerStand() plus bas.
 
    API — inchangée depuis v1.0 :
@@ -98,9 +98,10 @@
 #att-voile .att-trame svg{width:100%;height:100%}
 #att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
 #att-voile .att-parc.faite{fill-opacity:.8}
-/* ⚠ à GAUCHE, pas à droite : la carte du stand se déplie vers la droite sur
-   568 px. Ancrée au bord droit de la trame, elle sortirait de l'écran. */
-#att-coin{position:absolute;left:6px;bottom:6px;z-index:2}
+/* Coin bas-droit : c'est là que stand.js monte son icône canard. Le détour par
+   le bord gauche n'a plus lieu d'être — la carte du stand ne s'ancre plus sur
+   l'icône, elle se place elle-même au centre bas de l'écran. */
+#att-coin{position:absolute;right:6px;bottom:6px;z-index:2}
 
 /* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
        corps qui absorbe le manque de place. ---- */
@@ -1123,5 +1124,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster();  } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "3.0-stand-separe" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "3.1" };
 })();
