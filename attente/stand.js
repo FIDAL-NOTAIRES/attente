@@ -674,7 +674,19 @@
       score = 0;
       return this;
     },
+    /* Remise à zéro entre deux générations : le score ne survit pas au
+       dossier terminé (décision du 01/09). On vide aussi la scène, sinon les
+       canards de la génération précédente réapparaîtraient au dépliage. */
+    remiseAZero: function () {
+      this.arreter();
+      canards.forEach(function (c) { c.el.remove(); });
+      chiens.forEach(function (d) { d.el.remove(); });
+      canards.length = 0; gisants.length = 0; chiens.length = 0;
+      score = 0; horloge = 0; dernierRare = -1e9;
+      if (elScore) elScore.innerHTML = '0<span>points</span>';
+      return this;
+    },
     score: function () { return score; },
-    version: '2.1-pixel'
+    version: '2.2-pixel'
   };
 })();
