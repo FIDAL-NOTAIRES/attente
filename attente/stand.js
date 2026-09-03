@@ -92,25 +92,28 @@
     '....KKKKKKKKKKKKGGKYYY',
     '................KKKKY.'
   ];
-  var AILE_HAUTE = [
+  /* ⚠ L'aile a ses PROPRES lettres A (dessus) et a (ombre). Elle réutilisait W,
+   le blanc de la queue : presque blanche, elle captait l'œil bien plus que
+   l'oiseau. Un dessus d'aile de canard est gris-brun. */
+var AILE_HAUTE = [
     '........KK............',
-    '.......KWK............',
-    '.......KWWK...........',
-    '......KWWWK...........',
-    '......KWWaK...........',
-    '.....KWWaaK...........',
-    '.....KWaaK............',
-    '....KKWaK.............'
+    '.......KAK............',
+    '.......KAAK...........',
+    '......KAAAK...........',
+    '......KAAaK...........',
+    '.....KAAaaK...........',
+    '.....KAaaK............',
+    '....KKAaK.............'
   ];
   var AILE_MI = [
     '......................',
     '......................',
     '..........KK..........',
-    '.........KWWK.........',
-    '........KWWaK.........',
-    '.......KWWaaK.........',
-    '.....KKWWaaK..........',
-    '....KWWWaK............'
+    '.........KAAK.........',
+    '........KAAaK.........',
+    '.......KAAaaK.........',
+    '.....KKAAaaK..........',
+    '....KAAAaK............'
   ];
   var AILE_BASSE = [
     '......................',
@@ -124,10 +127,10 @@
   ];
   /* l'aile basse passe SOUS le corps : elle se dessine après lui */
   var AILE_BASSE_BAS = [
-    '....KWWaK.............',
-    '.....KWWaaK...........',
-    '......KWaaK...........',
-    '.......KWaK...........',
+    '....KAAaK.............',
+    '.....KAAaaK...........',
+    '......KAaaK...........',
+    '.......KAaK...........',
     '........KK............'
   ];
   /* Canard MORT, au sol : le corps SANS ses ailes (elles sont closes), tête
@@ -153,20 +156,20 @@
   var ESPECES = {
     colvert: { nom: 'Colvert', points: 1, ech: 3, vitesse: 1.00, poids: 50,
       teinte: '#1D7A3E', spatule: false,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#9AA3AE', b:'#5E6874',
-             B:'#98A1AC', M:'#7A4526', G:'#1D7A3E', Y:'#E8A62C' } },
+      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', A:'#A8AEB6', a:'#7B828A',
+             b:'#5E6874', B:'#98A1AC', M:'#7A4526', G:'#1D7A3E', Y:'#E8A62C' } },
     souchet: { nom: 'Souchet', points: 2, ech: 3, vitesse: 1.18, poids: 30,
       teinte: '#A8531F', spatule: true,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#7E8F98', b:'#4A585F',
-             B:'#A8531F', M:'#F0EADA', G:'#14573A', Y:'#2B2F35' } },
+      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', A:'#9FB2B8', a:'#6C7F86',
+             b:'#4A585F', B:'#A8531F', M:'#F0EADA', G:'#14573A', Y:'#2B2F35' } },
     sarcelle: { nom: 'Sarcelle', points: 3, ech: 3, vitesse: 1.45, poids: 20,
       teinte: '#7A3B22', spatule: false,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#98988F', b:'#63635C',
-             B:'#B9BCB8', M:'#E6DCC4', G:'#7A3B22', Y:'#2A2E33' } },
+      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', A:'#A9AEA8', a:'#7B807A',
+             b:'#63635C', B:'#B9BCB8', M:'#E6DCC4', G:'#7A3B22', Y:'#2A2E33' } },
     mandarin: { nom: 'Mandarin', points: 5, ech: 3, vitesse: 3.40, poids: 0,
       teinte: '#D9772B', spatule: false,
-      pal: { K:'#181818', W:'#F0A24E', N:'#FFFFFF', a:'#7A6E8C', b:'#4A4458',
-             B:'#D3B36A', M:'#4A2E5C', G:'#1B5E3A', Y:'#C6362F' } }
+      pal: { K:'#181818', W:'#F0A24E', N:'#FFFFFF', A:'#8A7EA0', a:'#5A5470',
+             b:'#4A4458', B:'#D3B36A', M:'#4A2E5C', G:'#1B5E3A', Y:'#C6362F' } }
   };
 
   function canardSVG(e) {
@@ -314,8 +317,12 @@
      5. STYLES
      ============================================================ */
   var CSS = ''
-    + '.att-stand{position:absolute;inset:auto auto 12px 12px;z-index:40;'
-      + 'font-family:"Segoe UI",system-ui,sans-serif}'
+    /* ⚠ ancrage par la DROITE (inset: auto 12px 12px auto). L'hôte #att-coin
+       est un point sans dimension posé dans le coin bas-droit de la trame :
+       ancrée par la gauche, l'icône s'étendait vers l'extérieur et sortait du
+       cadre. Par la droite, elle rentre. */
+    + '.att-stand{position:absolute;inset:auto 12px 12px auto;z-index:40;'
+      + 'font-family:"Segoe UI",system-ui,sans-serif;white-space:nowrap}'
     /* ⚠ L'icône ne bouge PAS et ne rétrécit PAS à l'ouverture. Réduite et
        glissée sous la carte, elle devenait introuvable — et c'est le seul
        moyen de replier le stand. Elle porte donc aussi son intitulé. */
@@ -725,6 +732,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '2.5-pixel'
+    version: '2.7-pixel'
   };
 })();
