@@ -1,692 +1,1127 @@
-/* ============================================================
-   ATTENTE — stand de tir  (v2.0, pixel art)
-   Module autonome, zéro dépendance, aucune image externe.
-   API :
-     ATT_STAND.monter(hote) / progression(0..1) / arreter() / demonter()
-   Aucun son : la radio reste seule source audio.
+/* ATTENTE — écran d'attente riche des outils FIDAL Notaires. Module UNIQUE :
+   un <script src="https://<projet-attente>.vercel.app/attente.js?v=2"></script>
+   et l'outil appelle ATTENTE.demarrer(...) / ATTENTE.terminer().
 
-   ── v2.0 (02/09/2026) — CHANGEMENT DE TECHNIQUE ────────────────
-   Abandon du dessin vectoriel « réaliste » après quatre tentatives.
-   Le constat : un canard tracé à la main en courbes de Bézier ne
-   ressemblera jamais à un canard photographié, et chaque version se
-   jugeait donc à l'aune d'un objectif inatteignable. Le pixel art
-   règle le problème par le haut — il assume ce qu'il est, personne
-   n'attend d'un sprite qu'il ressemble à une photo — et le registre
-   colle au module : ATTENTE est déjà peuplé d'objets (poste de radio
-   à cadran, bande de pellicule, compteur à tambours), un jeu
-   d'arcade de 1985 appartient à cette famille.
+   Héritier direct du « voile de production » de PAINT (01/08/2026) : même
+   principe de suivi du sablier SANS instrumenter les boucles (on relit un
+   message de progression toutes les 400 ms), même gestion de l'autoplay audio.
 
-   Conséquences techniques :
-     • sprites = cartes de caractères, une lettre par pixel, converties
-       en <rect>. Les pixels contigus d'une même ligne sont FUSIONNÉS :
-       un canard fait ~45 nœuds, pas 330.
-     • l'animation ne passe plus par des rotations CSS mais par
-       CHANGEMENT DE POSE : les trois poses d'aile coexistent dans le
-       SVG, une animation d'opacité en steps() les alterne. Rien à
-       calculer en JS à chaque image.
-     • échelles ENTIÈRES uniquement, shape-rendering="crispEdges" et
-       image-rendering:pixelated : à l'échelle 2,5 un sprite bave.
-   ============================================================ */
+   ── v1.2 (01/09/2026) ────────────────────────────────────────────────────
+   Chaque support épouse la forme de son sujet, au lieu de quatre cadrans
+   identiques et tristes :
+     • actus       → bande de dépêche d'agence, papier, bord déchiré, téléscripteur
+     • classements → panneau lumineux de stade (matrice de points, chiffres ambre)
+     • culturel    → bande de pellicule 35 mm, perforations carrées sur les
+                     deux bords, une rubrique par photogramme
+     • compteurs   → compteur électrique : cadran rond + tambours à chiffres,
+                     les 9 pays en grille simultanée avec drapeau (plus de défilé)
+     • radio       → cadran horizontal de vieux poste : aiguille sur échelle
+                     graduée, grésillement au déplacement, silence par défaut
+                     (aucune mémorisation de la dernière station)
+
+   ⚠ Toutes les animations vivent sur le compositeur (transform/opacity) :
+   coût nul sur le traitement qui tourne derrière. Un onglet qui joue de
+   l'audio est exempté de l'étranglement des minuteries en arrière-plan par
+   Chrome — la radio n'est pas qu'un agrément, elle protège la cadence des
+   traitements longs (constat PAINT, 01/08).
+
+   ⚠ Les tambours des compteurs ne font rouler QUE les trois derniers
+   chiffres (les seuls qui bougent en une attente) : 9 pays × 2 valeurs, ça
+   fait 54 bandes animées au lieu de 200.
+
+   ⚠ Les données viennent de /api/veille?type=… sur le MÊME domaine que ce
+   script (déduit de currentScript.src) : aucun domaine en dur, le module
+   suit son déploiement.
+
+   ⚠ #att-coin, coin bas-gauche de la trame : c'est là que stand.js monte
+   son icône canard et déplie sa carte. Voir chargerStand() plus bas.
+
+   API — inchangée depuis v1.0 :
+     ATTENTE.demarrer({ titre, sousTitre, source, trame })
+     ATTENTE.progression(pct, phase)
+     ATTENTE.echec("message")
+     ATTENTE.terminer()
+*/
 (function () {
-  'use strict';
+  "use strict";
+  if (window.ATTENTE) return; // déjà chargé
 
-  var C = {
-    nuit: '#0F2238', canard: '#33838B', cyan: '#6DD5DC',
-    jauneForme: '#FFE764', jauneTexte: '#FFC900'
+  const SCRIPT = document.currentScript;
+  const BASE = SCRIPT && SCRIPT.src ? new URL(SCRIPT.src).origin : "";
+
+  /* ---------- charte FIDAL v2.2 ---------- */
+  const C = {
+    nuit: "#0F2238", canard: "#33838B", orange: "#FF982D",
+    carmin: "#A01040", cyan: "#6DD5DC", jauneForme: "#FFE764",
+    vert: "#4caf7d", encre: "#e8eef5", sourdine: "#8fa5bb",
+    ligne: "rgba(255,255,255,.14)",
+    papier: "#F4EFE4", papierEncre: "#25313d",   // dépêche
+    carminVif: "#E24A63",                        // carmin éclairci, lisible sur nuit
+    laiton: "#8a6b3d", bakelite: "#1b2a3a",      // cadran radio
+    led: "#FFB53D",                              // panneau de stade
   };
 
-  /* ============================================================
-     1. MOTEUR DE SPRITES
-     ============================================================ */
-  function runs(carte, pal, dx, dy) {
-    var r = '', X = dx || 0, Y = dy || 0;
-    for (var y = 0; y < carte.length; y++) {
-      var L = carte[y], x = 0;
-      while (x < L.length) {
-        var c = L.charAt(x);
-        if (c === '.') { x++; continue; }
-        var n = 1;
-        while (x + n < L.length && L.charAt(x + n) === c) n++;
-        r += '<rect x="' + (x + X) + '" y="' + (y + Y) + '" width="' + n
-           + '" height="1" fill="' + pal[c] + '"/>';
-        x += n;
-      }
-    }
-    return r;
-  }
-  /* ⚠ UNE SEULE TAILLE DE PIXEL dans toute la scène. Le décor et les sprites
-     doivent partager la même grille, sinon l'oiseau a un grain plus fin que le
-     paysage et l'illusion tombe. Ici : 3 pixels d'écran par pixel de sprite,
-     donc un décor de 189 x 99 pour un ciel de 568 x 296, et TOUTES les espèces
-     à l'échelle 3 — en pixel art on ne réduit pas le pixel pour faire un
-     canard plus petit, on lui dessine un sprite plus petit. */
-  function svgPx(W, H, corps, ech) {
-    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + (W * ech)
-      + '" height="' + (H * ech) + '" shape-rendering="crispEdges"'
-      + ' xmlns="http://www.w3.org/2000/svg">' + corps + '</svg>';
-  }
+  const CSS = `
+#att-voile{position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;
+  background:${C.nuit};color:${C.encre};font:14px/1.45 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+#att-voile.on{display:flex}
+#att-voile *{box-sizing:border-box}
+#att-voile button:focus-visible{outline:2px solid ${C.cyan};outline-offset:2px}
 
-  /* ============================================================
-     2. CANARDS — 22 x 20, vol vers la DROITE.
-        Géométrie commune, palette par espèce : c'est ainsi que
-        procédait Duck Hunt, qui n'avait qu'un canard et trois jeux
-        de couleurs. Le souchet a en plus son bec en spatule.
-     ============================================================ */
-  var CORPS = [
-    '........KKKKKKK.......',
-    '.....KKKBBBBBBBKKK....',
-    '...KKBBBBBBBBBMMMKKK..',
-    '..KWBBBBBBBBBBMMGGGK..',
-    '.KWWKBBBBBBBBBMGNKGKYY',
-    '..KWKKbbbbbbbbKGGGKYYY',
-    '....KKKKKKKKKKKKGGKKY.',
-    '................KKK...'
-  ];
-  var CORPS_SPATULE = [
-    '........KKKKKKK.......',
-    '.....KKKBBBBBBBKKK....',
-    '...KKBBBBBBBBBMMMKKK..',
-    '..KWBBBBBBBBBBMMGGGKK.',
-    '.KWWKBBBBBBBBBMGNKGKYY',
-    '..KWKKbbbbbbbbKGGGKYYY',
-    '....KKKKKKKKKKKKGGKYYY',
-    '................KKKKY.'
-  ];
-  var AILE_HAUTE = [
-    '........KK............',
-    '.......KWK............',
-    '.......KWWK...........',
-    '......KWWWK...........',
-    '......KWWaK...........',
-    '.....KWWaaK...........',
-    '.....KWaaK............',
-    '....KKWaK.............'
-  ];
-  var AILE_MI = [
-    '......................',
-    '......................',
-    '..........KK..........',
-    '.........KWWK.........',
-    '........KWWaK.........',
-    '.......KWWaaK.........',
-    '.....KKWWaaK..........',
-    '....KWWWaK............'
-  ];
-  var AILE_BASSE = [
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '.....KKKKK............'
-  ];
-  /* l'aile basse passe SOUS le corps : elle se dessine après lui */
-  var AILE_BASSE_BAS = [
-    '....KWWaK.............',
-    '.....KWWaaK...........',
-    '......KWaaK...........',
-    '.......KWaK...........',
-    '........KK............'
-  ];
-  /* Canard MORT, au sol : le corps SANS ses ailes (elles sont closes), tête
-     posée à hauteur du corps, œil clos. 22 x 9.
+/* ---- entête et progression ---- */
+#att-voile .att-haut{display:flex;flex-direction:column;align-items:center;gap:9px;padding:26px 20px 4px;text-align:center;flex:0 0 auto}
+#att-voile .att-logo{font-size:14px;letter-spacing:5px;color:${C.cyan};font-weight:600}
+#att-voile .att-titre{font-family:Georgia,serif;font-size:30px;font-weight:700;letter-spacing:.5px}
+#att-voile .att-sous{font-size:14px;color:${C.sourdine};margin-top:-6px}
+#att-voile .att-phase{font-size:15px;min-height:22px;color:${C.encre}}
+#att-voile .att-barre{width:min(520px,80vw);height:8px;border-radius:99px;background:${C.ligne};overflow:hidden}
+#att-voile .att-barre>div{height:100%;width:0%;background:${C.canard};border-radius:99px;transition:width .6s ease}
+#att-voile.fin .att-barre>div{background:${C.vert}}
+#att-voile .att-compte{font-size:12.5px;color:${C.sourdine};min-height:16px}
 
-     ⚠ Premier jet à jeter : la tête pendait à la verticale, ce qui dessinait
-     exactement la silhouette d'une crosse — le sprite se lisait comme un
-     pistolet. Sur une grille de vingt pixels, une tête basse ne dit pas
-     « mort », elle dit « autre objet ». Couché à plat, en revanche, c'est le
-     même corps que le canard en vol, donc reconnaissable sans ambiguïté. */
-  var MORT = [
-    '........KKKKKKK.......',
-    '.....KKKBBBBBBBKKK....',
-    '...KKBBBBBBBBBMMMKKK..',
-    '..KWBBBBBBBBBBMMGGGK..',
-    '.KWWKBBBBBBBBBMGKKGKYY',
-    '..KWKKbbbbbbbbKGGGKYYY',
-    '....KKKKKKKKKKKKGGKKY.',
-    '................KKK...',
-    '......................'
-  ];
+/* ---- cadre central : sa hauteur est celle qui reste, et le corps qu'il
+       contient se MET À L'ÉCHELLE pour y entrer en entier (voir ajuster()).
+       Rogner une carte au milieu d'un chiffre serait pire que la réduire. --- */
+/* ⚠ align-items:flex-start est ESSENTIEL : sans lui, le corps — enfant flex du
+   cadre — s'étire à la hauteur du cadre, sa hauteur mesurée vaut toujours la
+   place disponible, ajuster() conclut « ça rentre » et le contenu réel déborde
+   pour être rogné en silence. C'est exactement le bug du 02/09 (carte des
+   compteurs invisible). */
+#att-voile .att-cadre{flex:1 1 auto;min-height:0;width:100%;display:flex;
+  justify-content:center;align-items:flex-start;overflow:hidden}
+#att-voile .att-corps{display:flex;flex-direction:column;align-items:center;width:100%;flex:0 0 auto;
+  transform-origin:top center;transform:scale(var(--att-z,1));transition:transform .3s ease}
 
-  var ESPECES = {
-    colvert: { nom: 'Colvert', points: 1, ech: 3, vitesse: 1.00, poids: 50,
-      teinte: '#1D7A3E', spatule: false,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#9AA3AE', b:'#5E6874',
-             B:'#98A1AC', M:'#7A4526', G:'#1D7A3E', Y:'#E8A62C' } },
-    souchet: { nom: 'Souchet', points: 2, ech: 3, vitesse: 1.18, poids: 30,
-      teinte: '#A8531F', spatule: true,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#7E8F98', b:'#4A585F',
-             B:'#A8531F', M:'#F0EADA', G:'#14573A', Y:'#2B2F35' } },
-    sarcelle: { nom: 'Sarcelle', points: 3, ech: 3, vitesse: 1.45, poids: 20,
-      teinte: '#7A3B22', spatule: false,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#98988F', b:'#63635C',
-             B:'#B9BCB8', M:'#E6DCC4', G:'#7A3B22', Y:'#2A2E33' } },
-    mandarin: { nom: 'Mandarin', points: 5, ech: 3, vitesse: 3.40, poids: 0,
-      teinte: '#D9772B', spatule: false,
-      pal: { K:'#181818', W:'#F0A24E', N:'#FFFFFF', a:'#7A6E8C', b:'#4A4458',
-             B:'#D3B36A', M:'#4A2E5C', G:'#1B5E3A', Y:'#C6362F' } }
+/* ---- trame parcellaire = jauge de fond ---- */
+#att-voile .att-trame{position:relative;width:94vw;flex:0 0 auto;height:15vh;
+  display:flex;align-items:center;justify-content:center}
+#att-voile .att-trame svg{width:100%;height:100%}
+#att-voile .att-parc{fill:${C.cyan};fill-opacity:0;stroke:${C.canard};stroke-opacity:.55;stroke-width:1.5;transition:fill-opacity .8s ease}
+#att-voile .att-parc.faite{fill-opacity:.8}
+/* ⚠ à GAUCHE, pas à droite : la carte du stand se déplie vers la droite sur
+   568 px. Ancrée au bord droit de la trame, elle sortirait de l'écran. */
+#att-coin{position:absolute;left:6px;bottom:6px;z-index:2}
+
+/* ---- rangée de cartes : aucune carte n'est tronquée, c'est l'échelle du
+       corps qui absorbe le manque de place. ---- */
+/* ⚠ AUCUN max-width ici. Il y en a eu un (1180, puis 1560, puis 1680, puis
+   1800 px) et à chaque fois la rangée s'est retrouvée à quelques pixels du
+   plafond : une carte passait à la ligne, la pile doublait de hauteur et
+   ajuster() réduisait tout. Un budget de largeur en dur est intenable dès que
+   les cartes changent. C'est la fenêtre qui décide, et flex-wrap ne se
+   déclenche donc que quand la place manque VRAIMENT. */
+#att-voile .att-cartes{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:stretch;
+  padding:10px 18px 4px;flex:0 0 auto}
+#att-voile .att-carte{display:none;position:relative}
+#att-voile .att-carte.on{display:block}
+/* ⚠ Ces deux lignes sont INDISPENSABLES. La règle .att-carte.on display:block
+   est plus spécifique que .att-cult display:flex et l'emportait : les cartes
+   culture n'étaient pas des colonnes flexibles, donc ni la répartition des
+   titres sur la hauteur ni la toile qui remplit le cadre doré ne
+   fonctionnaient — sans qu'aucune erreur ne le signale. */
+#att-voile .att-cult.on{display:flex}
+#att-voile .att-tir.on{display:flex}
+
+/* ---- CULTURE — TROIS cartes autonomes (décision du 02/09), chacune dans la
+       forme de son sujet plutôt qu'un cadre unique à trois compartiments :
+         • cinéma → bande de pellicule 35 mm, perforations sur les deux bords
+         • arts   → cadre doré et sa plaque de musée
+         • livres → volume relié, dos toilé à gauche, tranche de pages à droite
+       Les perforations et les trous sont peints en couleur de voile : l'aplat
+       uni du fond fait le reste, sans mask-composite. ---- */
+#att-voile .att-cult{width:212px;font-size:12.5px;display:flex;flex-direction:column}
+#att-voile .att-cult h3{margin:0 0 6px;font:600 11.5px/1 "Segoe UI",sans-serif;
+  display:flex;align-items:center;gap:7px}
+#att-voile .att-cult h3::after{content:"";flex:1;height:1px;background:currentColor;opacity:.3}
+#att-voile .att-cult ul{margin:0;padding:0;list-style:none;line-height:1.4;
+  flex:1;display:flex;flex-direction:column;justify-content:space-between}
+#att-voile .att-cult li{position:relative;padding:3px 0 3px 11px;color:#3a3226;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#att-voile .att-cult li::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;
+  border-radius:50%;background:#b5a483}
+/* le titre tronqué est cliquable : l'article s'ouvre dans un NOUVEL onglet,
+   jamais dans celui-ci — un clic qui quitterait la page tuerait la génération
+   qui tourne derrière le voile. */
+#att-voile .att-cult a{color:inherit;text-decoration:none;cursor:pointer}
+#att-voile .att-cult a:hover{text-decoration:underline;text-decoration-color:${C.carmin}}
+#att-voile .att-cult a:focus-visible{outline:2px solid ${C.carmin};outline-offset:2px}
+
+/* cinéma — bande de pellicule */
+#att-voile .att-film{background:#EDE2CB;color:#2a2318;border-radius:2px;padding:11px 18px 12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.42)}
+#att-voile .att-film::before,
+#att-voile .att-film::after{content:"";position:absolute;top:0;bottom:0;width:18px;
+  background-color:#E0D2B4;
+  background-image:linear-gradient(${C.nuit} 0 6px,transparent 6px);
+  background-size:10px 13px;background-position:4px 6px;background-repeat:repeat-y}
+#att-voile .att-film::before{left:0;box-shadow:inset -1px 0 0 rgba(42,35,24,.16)}
+#att-voile .att-film::after{right:0;box-shadow:inset 1px 0 0 rgba(42,35,24,.16)}
+#att-voile .att-film h3{color:${C.carmin}}
+
+/* arts — cadre doré et toile en léger creux. Le titre est en tête, comme sur
+   les deux autres cartes : la plaque de musée en pied était plus jolie mais
+   désalignait les trois intitulés. */
+#att-voile .att-cadre-or{padding:8px;border-radius:3px;display:flex;flex-direction:column;
+  background:linear-gradient(135deg,#c9a862,#8a6b3d 42%,#d8bb78 52%,#7d6034);
+  box-shadow:0 8px 20px rgba(0,0,0,.45)}
+#att-voile .att-toile{flex:1;display:flex;flex-direction:column;
+  background:#F3EBDA;color:#2a2318;padding:10px 11px 11px;
+  box-shadow:inset 0 0 0 1px rgba(42,35,24,.3),inset 0 3px 12px rgba(0,0,0,.1)}
+#att-voile .att-toile h3{color:#2a6a72}
+
+/* livres — volume relié : dos toilé et ses filets dorés à gauche, tranche de
+   pages suggérée à droite par des ombres internes empilées. */
+#att-voile .att-livre{background:#F1E9D8;color:#2a2318;padding:11px 15px 12px 27px;
+  border-radius:2px 8px 8px 2px;
+  box-shadow:0 8px 20px rgba(0,0,0,.45),
+    inset -2px 0 0 rgba(42,35,24,.13),inset -4px 0 0 rgba(255,255,255,.75),
+    inset -6px 0 0 rgba(42,35,24,.1),inset -8px 0 0 rgba(255,255,255,.6)}
+#att-voile .att-livre::before{content:"";position:absolute;left:0;top:0;bottom:0;width:18px;
+  border-radius:2px 0 0 2px;background:linear-gradient(90deg,#245c63,${C.canard} 55%,#1f4f56)}
+#att-voile .att-livre::after{content:"";position:absolute;left:3px;top:9px;bottom:9px;width:12px;
+  background:repeating-linear-gradient(to bottom,${C.laiton} 0 1px,transparent 1px 8px);opacity:.6}
+#att-voile .att-livre h3{color:#8a6b3d}
+
+/* ---- CLASSEMENTS — panneau lumineux de stade. Un tableau d'affichage est
+       ALLUMÉ : caisson bleu vif, bandeau de titre en canard, témoin vert qui
+       respire, écran encastré à matrice de points, points en ambre franc, et
+       les rangs en pastilles (podium doré, places européennes en cyan) — le
+       classement dit ainsi quelque chose au lieu d'aligner des chiffres. --- */
+#att-voile .att-panneau{width:290px;background:linear-gradient(#18344c,#0e2133);
+  border:1px solid #42627e;border-radius:8px;padding:0 0 12px;
+  display:flex;flex-direction:column;
+  box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.09)}
+#att-voile .att-panneau-tete{display:flex;align-items:center;gap:9px;color:#fff;
+  background:linear-gradient(${C.canard},#2a6a72);padding:8px 14px;border-radius:7px 7px 0 0}
+#att-voile .att-panneau-tete h3{font:600 13px/1 "Segoe UI",sans-serif;letter-spacing:1.2px;margin:0}
+#att-voile .att-led-vive{width:8px;height:8px;border-radius:50%;background:#8CFF6B;flex:0 0 auto;
+  box-shadow:0 0 9px #8CFF6B;animation:att-pulse 2.6s ease-in-out infinite}
+#att-voile .att-panneau-jour{margin-left:auto;font:11px/1 "Consolas","Courier New",monospace;
+  background:rgba(0,0,0,.3);border-radius:3px;padding:3px 8px}
+#att-voile .att-ecran{position:relative;flex:1;margin:11px 12px 0;background:#08161f;border:1px solid #335066;
+  border-radius:5px;padding:9px 11px;box-shadow:inset 0 0 24px rgba(0,0,0,.7)}
+/* les huit lignes se répartissent sur la hauteur de l'écran : le caisson
+   s'étirant à la hauteur commune des cartes, un tableau à moitié vide ferait
+   panneau en panne plutôt que panneau allumé. */
+#att-voile .att-ecran table{height:100%}
+#att-voile .att-ecran tbody td{height:auto}
+#att-voile .att-ecran::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:4px;
+  background:radial-gradient(circle .6px at .6px .6px,rgba(255,255,255,.055) .6px,transparent .7px) 0 0/4px 4px}
+#att-voile .att-ecran table{border-collapse:collapse;width:100%;position:relative}
+#att-voile .att-ecran thead td{font:10.5px/1 "Segoe UI",sans-serif;letter-spacing:1px;color:#6f879c;padding:0 0 6px}
+#att-voile .att-ecran tbody td{padding:3px 0;border-top:1px solid rgba(255,255,255,.055)}
+#att-voile .att-ecran td.equipe{font-size:13.5px;color:#eaf3fb;padding:3px 8px}
+#att-voile .att-ecran tbody tr:first-child td.equipe{color:#fff;font-weight:600}
+#att-voile .att-ecran td.pts{text-align:right;font:700 15px/1 "Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;color:${C.led};text-shadow:0 0 10px rgba(255,181,61,.55)}
+#att-voile .att-rang{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+  border-radius:3px;font:600 10.5px/1 "Segoe UI",sans-serif;background:rgba(255,255,255,.09);color:#b9cadb}
+#att-voile .att-rang.podium{background:${C.jauneForme};color:${C.nuit}}
+#att-voile .att-rang.euro{background:rgba(109,213,220,.2);color:${C.cyan}}
+@keyframes att-pulse{0%,100%{opacity:1}50%{opacity:.28}}
+
+/* ---- COMPTEURS — compteur électrique : cadran rond en tête, tambours à
+       chiffres derrière une vitre, 9 pays en grille simultanée. ---- */
+#att-voile .att-compteur{width:min(710px,92vw);background:linear-gradient(#1a2a3c,#132234);
+  border:1px solid #33455a;border-radius:10px;padding:10px 14px 12px;
+  box-shadow:0 4px 16px rgba(0,0,0,.4)}
+#att-voile .att-compteur .att-comp-haut{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+#att-voile .att-compteur h3{font-family:Georgia,serif;font-size:15px;font-weight:700;margin:0;color:${C.cyan}}
+/* ⚠ TROIS colonnes, pas quatre. En quatre, les cellules tombaient à 158 px
+   alors que la ligne « dette » du Japon en réclame près de 200 (seize chiffres
+   et cinq séparateurs pour 1 316 044 015 411 070 ¥) : le contenu débordait et
+   poussait la flèche de tendance dans la cellule du pays voisin. La carte
+   garde sa largeur, elle prend juste une ligne de plus. */
+#att-voile .att-grille{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 13px}
+#att-voile .att-pays{border-top:1px solid rgba(255,255,255,.09);padding-top:6px;min-width:0}
+#att-voile .att-pays-tete{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+#att-voile .att-pays-tete svg{width:21px;height:14px;border-radius:1.5px;flex:0 0 auto;
+  box-shadow:0 0 0 1px rgba(255,255,255,.22)}
+#att-voile .att-pays-nom{font-size:12px;color:${C.encre};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#att-voile .att-pays-code{display:inline-flex;align-items:center;justify-content:center;width:21px;height:14px;
+  border-radius:1.5px;background:${C.canard};color:#fff;font:600 8.5px/1 "Segoe UI",sans-serif;flex:0 0 auto}
+#att-voile .att-ligne{display:flex;align-items:baseline;gap:6px;min-width:0}
+#att-voile .att-ligne-lib{font-size:10.5px;color:${C.sourdine};width:26px;flex:0 0 auto}
+
+/* tambours : vitre sombre, chiffre fixe en clair, chiffres roulants en jaune */
+#att-voile .att-vitre{display:inline-flex;align-items:center;background:#08131e;border:1px solid #2a3b4c;
+  border-radius:3px;padding:1px 4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.8);
+  min-width:0;overflow:hidden}
+#att-voile .att-od-val{display:flex;overflow:hidden;height:1.2em;font:600 14px/1.2 "Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;color:${C.encre}}
+#att-voile .att-od-val.dette{font-size:11px;color:#cfdae6}
+#att-voile .att-od-col{position:relative;width:.62em;height:1.2em}
+#att-voile .att-od-strip{position:absolute;left:0;top:0;display:flex;flex-direction:column;
+  transition:transform .55s cubic-bezier(.3,.7,.3,1);will-change:transform;color:${C.jauneForme}}
+#att-voile .att-od-val.dette .att-od-strip{color:${C.orange}}
+#att-voile .att-od-strip span{height:1.2em;text-align:center}
+#att-voile .att-od-fixe{width:.62em;text-align:center}
+#att-voile .att-od-sep{width:.26em}
+#att-voile .att-od-suf{font-size:10.5px;color:${C.sourdine};margin-left:4px;align-self:center}
+
+/* flèche de tendance : la DIRECTION dit ce qui se passe, la COULEUR dit si
+   c'est une bonne nouvelle. Deux informations distinctes, donc une dette qui
+   gonfle monte — et monte en rouge (révision du 02/09). */
+#att-voile .att-fleche{width:9px;height:9px;flex:0 0 auto;margin-left:6px;align-self:center}
+#att-voile .att-fleche path{fill:currentColor}
+#att-voile .att-fleche.bon{color:${C.vert};filter:drop-shadow(0 0 4px rgba(76,175,125,.55))}
+#att-voile .att-fleche.mauvais{color:${C.carminVif};filter:drop-shadow(0 0 4px rgba(226,74,99,.5))}
+#att-voile .att-fleche.plat{color:${C.sourdine}}
+
+/* cadran rond du compteur, aiguille qui suit la progression */
+#att-voile .att-cadran{width:42px;height:42px;flex:0 0 auto}
+#att-voile .att-cadran-aig{transform-origin:21px 21px;transition:transform .9s cubic-bezier(.3,.7,.3,1)}
+
+/* ---- RADIO — cadran horizontal de vieux poste ---- */
+#att-voile .att-poste{width:min(560px,92vw);flex:0 0 auto;margin:8px 0 6px;
+  background:linear-gradient(${C.bakelite},#101c28);border:1px solid #2e4053;border-radius:9px;
+  padding:9px 16px 11px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+#att-voile .att-echelle{position:relative;height:46px;cursor:ew-resize;touch-action:none;
+  background:linear-gradient(#22323f,#16242f);border:1px solid #3a5065;border-radius:5px;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.6)}
+#att-voile .att-echelle::after{content:"";position:absolute;inset:0;border-radius:5px;pointer-events:none;
+  background:linear-gradient(105deg,rgba(255,255,255,.11) 0 18%,transparent 30%)}
+#att-voile .att-grad{position:absolute;left:0;right:0;top:5px;height:8px;
+  background:repeating-linear-gradient(to right,${C.laiton} 0 1px,transparent 1px 11px);opacity:.75}
+#att-voile .att-crans{position:absolute;left:0;right:0;bottom:5px;height:26px}
+#att-voile .att-cran{position:absolute;transform:translateX(-50%);text-align:center;
+  font:11.5px/1 "Segoe UI",sans-serif;color:${C.sourdine};white-space:nowrap;
+  background:none;border:0;padding:6px 4px 0;cursor:pointer}
+#att-voile .att-cran::before{content:"";display:block;width:1px;height:9px;margin:0 auto 4px;background:${C.laiton}}
+#att-voile .att-cran.on{color:${C.orange}}
+#att-voile .att-cran.morte{color:#5b6d80;text-decoration:line-through}
+#att-voile .att-aiguille{position:absolute;left:0;top:2px;bottom:2px;width:2px;background:${C.orange};
+  box-shadow:0 0 9px rgba(255,152,45,.85);transition:transform .45s cubic-bezier(.3,.7,.3,1);
+  will-change:transform;pointer-events:none}
+#att-voile .att-aiguille.libre{transition:none}
+#att-voile .att-aiguille::before{content:"";position:absolute;left:50%;top:-5px;width:11px;height:11px;
+  margin-left:-5.5px;border-radius:50%;background:${C.orange};box-shadow:0 0 9px rgba(255,152,45,.9)}
+#att-voile .att-poste-pied{display:flex;align-items:center;justify-content:space-between;
+  margin-top:6px;font-size:11px;color:${C.sourdine}}
+#att-voile .att-temoin{display:inline-block;width:7px;height:7px;border-radius:50%;background:#43596d;margin-right:6px}
+#att-voile .att-poste.joue .att-temoin{background:${C.orange};box-shadow:0 0 8px ${C.orange}}
+
+/* ---- ACTUS — bande de dépêche d'agence, désormais EN TÊTE du voile (02/09) :
+       en pied elle était le dernier élément et se faisait rogner par le bas de
+       l'écran. Le bord déchiré passe donc en dessous, comme une bande de papier
+       qui pend. Une étiquette carmin fixe à gauche nomme le fil ; le texte
+       défile derrière elle. Défilement volontairement lent : on doit pouvoir
+       lire un titre entier sans le suivre des yeux. ---- */
+#att-voile .att-depeche{width:100%;flex:0 0 auto;position:relative;display:none;z-index:1;
+  background:${C.papier};color:${C.papierEncre};padding:11px 0 10px;
+  box-shadow:0 6px 20px rgba(0,0,0,.45);overflow:hidden}
+#att-voile .att-depeche.on{display:block}
+#att-voile .att-depeche::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:9px;
+  background:
+    linear-gradient(-135deg,${C.papier} 4.5px,transparent 0) 0 0/14px 9px repeat-x,
+    linear-gradient(135deg,${C.papier} 4.5px,transparent 0) 0 0/14px 9px repeat-x}
+#att-voile .att-depeche-etiq{position:absolute;left:0;top:0;bottom:0;z-index:2;display:flex;
+  align-items:center;padding:0 16px;background:${C.carmin};color:${C.papier};
+  font:600 11px/1 "Segoe UI",sans-serif;letter-spacing:2.5px}
+#att-voile .att-depeche-int{display:inline-block;padding-left:100vw;white-space:nowrap;
+  font:15px/1.35 "Consolas","Courier New",monospace;
+  animation:att-defile var(--att-dur,150s) linear infinite;will-change:transform}
+#att-voile .att-depeche b{color:${C.carmin};font-weight:700;margin:0 10px 0 34px}
+#att-voile .att-depeche i{font-style:normal;color:#a0937c;margin:0 8px}
+@keyframes att-defile{to{transform:translateX(-100%)}}
+
+/* ---- échec ---- */
+#att-echec{position:absolute;top:0;left:0;right:0;z-index:4;display:none;align-items:center;gap:14px;
+  background:${C.carmin};color:#fff;padding:10px 18px;font-size:14px}
+#att-echec.on{display:flex}
+#att-echec button{margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);
+  color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font:13px "Segoe UI",sans-serif}
+
+@media (max-height:900px){
+  #att-voile .att-haut{padding:14px 20px 2px;gap:6px}
+  #att-voile .att-titre{font-size:24px}
+  #att-voile .att-trame{height:13vh}
+  #att-voile .att-poste{margin:4px 0 2px;padding:7px 16px 8px}
+  #att-voile .att-echelle{height:38px}
+  #att-voile .att-cartes{padding:6px 18px 2px;gap:12px}
+}
+@media (max-width:720px){
+  #att-voile .att-titre{font-size:24px}
+  #att-voile .att-trame{max-height:16vh}
+}
+@media (prefers-reduced-motion: reduce){
+  #att-voile .att-depeche-int{animation:none}
+  #att-voile .att-od-strip,#att-voile .att-parc,#att-voile .att-aiguille,#att-voile .att-cadran-aig{transition:none}
+  #att-voile .att-led-vive{animation:none}
+  #att-voile .att-aile-proche,#att-voile .att-aile-loin,
+  #att-voile .att-patte-a,#att-voile .att-patte-b{animation:none}
+}`;
+
+  /* ---------- radios : adresses de flux EN DUR, aucun appel à /api/veille.
+     ⚠ NON CONTRACTUELLES (constat PAINT sur Radio Classique) : un flux qui ne
+     démarre pas en 6 s est réputé mort, son cran est barré, on n'insiste pas.
+     ⚠ v1.2 : plus AUCUNE mémorisation — l'aiguille part sur « silence ». */
+  const RADIOS = [
+    { nom: "Radio Classique", url: "https://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3" },
+    { nom: "FIP",             url: "https://icecast.radiofrance.fr/fip-midfi.mp3" },
+    { nom: "franceinfo",      url: "https://icecast.radiofrance.fr/franceinfo-midfi.mp3" },
+    { nom: "France Musique",  url: "https://icecast.radiofrance.fr/francemusique-midfi.mp3" },
+  ];
+  const CRANS = [{ nom: "silence", url: null }].concat(RADIOS);
+
+  /* ---------- état du module ---------- */
+  const E = {
+    on: false, minuterie: null, actusMinuterie: null, compteursMinuterie: null,
+    source: null, parcelles: [], faites: 0, audio: null, radioNom: null,
+    compteurs: null, roues: [], pct: 0,
+    cran: 0, ratio: 0, glisse: false, mortes: {},
   };
+  const $ = (id) => document.getElementById(id);
+  // ⚠ les guillemets et apostrophes sont échappés aussi : depuis la v1.9 on
+  // écrit des attributs (href, title) avec des données de flux RSS.
+  const echap = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  // n'accepte qu'une adresse http(s) : un flux compromis ne doit pas pouvoir
+  // glisser un javascript: dans un href.
+  const lien = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "");
 
-  function canardSVG(e) {
-    var corps = runs(e.spatule ? CORPS_SPATULE : CORPS, e.pal, 0, 7);
-    return svgPx(22, 20, ''
-      + '<g class="att-f0">' + runs(AILE_HAUTE, e.pal) + corps + '</g>'
-      + '<g class="att-f1">' + runs(AILE_MI, e.pal) + corps + '</g>'
-      + '<g class="att-f2">' + runs(AILE_BASSE, e.pal) + corps
-        + runs(AILE_BASSE_BAS, e.pal, 0, 15) + '</g>', e.ech);
-  }
-  function canardFixe(e, ech) {
-    return svgPx(22, 20, runs(AILE_HAUTE, e.pal)
-      + runs(e.spatule ? CORPS_SPATULE : CORPS, e.pal, 0, 7), ech || e.ech);
-  }
-  function canardMortSVG(e, ech) {
-    return svgPx(22, 9, runs(MORT, e.pal), ech || e.ech);
-  }
-
-  /* ============================================================
-     3. LE CHIEN — 34 x 24, profil vers la droite, sol à y=23.
-        Deux poses de trot, alternées par la même mécanique
-        d'opacité que les ailes. Gueule autour de (24,13).
-     ============================================================ */
-  var PAL_CHIEN = { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', F:'#8A5A2E', f:'#5E3A18' };
-  var CHIEN_HAUT = [
-    '..................................',
-    '.KK...............................',
-    'KWWK..............................',
-    'KWWK..............KKKKKK..........',
-    '.KWWK............KWWWWWWKK........',
-    '..KWWK..........KWFFFFFWWWK.......',
-    '...KWWKKKKKKKKKKKWFFFFFFFWWK......',
-    '....KWWWWWWWWWWWWWFFNKFFFFWK......',
-    '....KWWWWWWWWWWWWWFFKKFFFFWWKK....',
-    '....KWWWWWWWWWWWWWFFFFFFFWWWWWKK..',
-    '....KWWWWWWWWWWWWWFFFFFFWWWWWWKK..',
-    '....KWWWWWWWWWWWWWWFFFFFWWWKKKK...',
-    '.....KWWWWWWWWWWWWWWFFFFWWKK......',
-    '.....KWWWWWWWWWWWWWWWffFWWK.......',
-    '.....KKWWWWWWWWWWWWWKffFWK........',
-    '......KKWWWWKKKKKWWWKffFK.........'
-  ];
-  var PATTES_A = [
-    '.......KffWK....KWfFK.KffWK.......',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '......KfffWK...KWffFK.KfffK.......',
-    '......KKKKKK...KKKKKK.KKKKK.......'
-  ];
-  var PATTES_B = [
-    '......KWfFK.....KffWK..KffWK......',
-    '......KWfFK.....KffWK..KffK.......',
-    '.......KWfFK....KffWK.KffK........',
-    '.......KWfFK....KffWK.KffK........',
-    '........KWfFK...KffWK.KffK........',
-    '........KWfFK..KffWK..KffK........',
-    '.......KWWfFK..KfffWK.KfffK.......',
-    '.......KKKKKK..KKKKKK.KKKKK.......'
-  ];
-  function chienSVG(ech) {
-    var haut = runs(CHIEN_HAUT, PAL_CHIEN);
-    return svgPx(34, 24, ''
-      + '<g class="att-f0">' + haut + runs(PATTES_A, PAL_CHIEN, 0, 16) + '</g>'
-      + '<g class="att-f1">' + haut + runs(PATTES_B, PAL_CHIEN, 0, 16) + '</g>'
-      + '<g class="att-prise"></g>', ech);
-  }
-
-  /* ============================================================
-     4. DÉCOR — en pixels, mais GÉNÉRÉ : une carte de caractères
-        pour un ciel entier ferait mille lignes pour un résultat
-        qu'on ne peut plus retoucher.
-     ============================================================ */
-  var ARBRE = [
-    '.....KKKK.......',
-    '...KKVVVVKK.....',
-    '..KVVVVVVVVK....',
-    '.KVVVVVVVVVVK...',
-    '.KVVVVVVVVVVK...',
-    '..KVVVVVVVVK.KK.',
-    '...KKVVVVKKKVVK.',
-    '.....KTTK.KVVVK.',
-    '.KK..KTTK.KVVVK.',
-    'KVVK.KTTK..KVK..',
-    'KVVVKKTTKKKKKK..',
-    '.KVVVKTTTTVVVK..',
-    '..KKKKTTKKKKK...',
-    '.....KTTK.......',
-    '.....KTTK.......',
-    '.....KTTK.......',
-    '....KTTTTK......',
-    '....KTTTTK......',
-    '...KTTTTTTK.....',
-    '...KTTTTTTK.....',
-    '..KTTTTTTTTK....',
-    '..KKKKKKKKKK....'
-  ];
-  var PAL_ARBRE = { K:'#123024', V:'#2E7A4A', T:'#6B4423' };
-
-  function decor(W, H) {
-    var D = { ciel1:'#5FA8D6', ciel2:'#7FC0E4', nuage:'#F2F7FA',
-      bois:'#1E4B3A', bois2:'#2F6650', herbe:'#4E8C3A', herbe2:'#3A6B2A',
-      eau:'#3E7FA8', eau2:'#5B9BC0' };
-    function r(x, y, w, h, f) {
-      return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h
-        + '" fill="' + f + '"/>';
-    }
-    /* Conifère : un triangle bâti en rectangles empilés de largeur croissante.
-       Au premier jet la lisière n'était qu'une rangée de rectangles verticaux —
-       ça faisait une haie de béton, pas une forêt. */
-    function sapin(x, sol, h, f) {
-      var o = '';
-      for (var i = 0; i < h; i++) {
-        var w = 1 + Math.floor(i * 4 / h);
-        o += r(x - Math.floor(w / 2), sol - h + i, w, 1, f);
-      }
-      return o;
-    }
-    var s = r(0, 0, W, H, D.ciel1);
-    s += r(0, Math.round(H * .24), W, Math.round(H * .36), D.ciel2);
-    var nu = [[8,5,14],[13,8,8],[46,4,16],[53,7,9],[86,6,13],[92,9,7],[112,4,12]];
-    for (var i = 0; i < nu.length; i++) s += r(nu[i][0], nu[i][1], nu[i][2], 3, D.nuage);
-
-    var yBois = Math.round(H * .56);
-    for (var x = 0; x < W + 4; x += 4) s += sapin(x, yBois, 5 + ((x * 7) % 4), D.bois2);
-    for (var x2 = 2; x2 < W + 6; x2 += 6) s += sapin(x2, yBois + 2, 7 + ((x2 * 11) % 5), D.bois);
-
-    var yEau = yBois + 2;
-    s += r(0, yEau, W, H - yEau, D.eau);
-    for (var k = 0; k < 10; k++) {
-      s += r((k * 19) % W, yEau + 2 + k, 6 + (k % 4) * 5, 1, D.eau2);
-    }
-    var yHerbe = H - 7;
-    s += r(0, yHerbe, W, 7, D.herbe2);
-    for (var g = 0; g < W; g += 2) s += r(g, yHerbe - (3 + ((g * 5) % 5)), 1, 3 + ((g * 5) % 5), D.herbe);
-
-    /* l'arbre part à DROITE : à gauche, le chien entre en scène et le masquait */
-    s += runs(ARBRE, PAL_ARBRE, W - 20, yHerbe - 22);
+  /* ================= DRAPEAUX =================
+     Dessinés en SVG, sans dépendance : les émojis drapeaux ne s'affichent pas
+     sous Windows (Chrome y montre « FR » à la place). Fallback : pastille au
+     code à deux lettres. Repère commun : viewBox 0 0 30 20. ---------- */
+  const vtri = (a, b, c) => `<rect width="10" height="20" fill="${a}"/><rect x="10" width="10" height="20" fill="${b}"/><rect x="20" width="10" height="20" fill="${c}"/>`;
+  const htri = (a, b, c) => `<rect width="30" height="6.67" fill="${a}"/><rect y="6.67" width="30" height="6.66" fill="${b}"/><rect y="13.33" width="30" height="6.67" fill="${c}"/>`;
+  const croixN = (f, x) => `<rect width="30" height="20" fill="${f}"/><rect x="10.5" width="4" height="20" fill="${x}"/><rect y="8" width="30" height="4" fill="${x}"/>`;
+  const bandes = (n, a, b) => {
+    let s = "";
+    for (let i = 0; i < n; i++) s += `<rect y="${(i * 20 / n).toFixed(2)}" width="30" height="${(20 / n).toFixed(2)}" fill="${i % 2 ? b : a}"/>`;
     return s;
+  };
+  const DRAPEAUX = {
+    FR: () => vtri("#0055A4", "#fff", "#EF4135"),
+    IT: () => vtri("#009246", "#fff", "#CE2B37"),
+    BE: () => vtri("#000", "#FDDA24", "#EF3340"),
+    IE: () => vtri("#169B62", "#fff", "#FF883E"),
+    RO: () => vtri("#002B7F", "#FCD116", "#CE1126"),
+    DE: () => htri("#000", "#DD0000", "#FFCE00"),
+    NL: () => htri("#AE1C28", "#fff", "#21468B"),
+    RU: () => htri("#fff", "#0039A6", "#D52B1E"),
+    LU: () => htri("#EF3340", "#fff", "#00A1DE"),
+    ES: () => `<rect width="30" height="20" fill="#AA151B"/><rect y="5" width="30" height="10" fill="#F1BF00"/>`,
+    PL: () => `<rect width="30" height="20" fill="#fff"/><rect y="10" width="30" height="10" fill="#DC143C"/>`,
+    ID: () => `<rect width="30" height="20" fill="#fff"/><rect width="30" height="10" fill="#CE1126"/>`,
+    UA: () => `<rect width="30" height="20" fill="#FFD500"/><rect width="30" height="10" fill="#005BBB"/>`,
+    JP: () => `<rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5.6" fill="#BC002D"/>`,
+    BD: () => `<rect width="30" height="20" fill="#006A4E"/><circle cx="13.5" cy="10" r="5.2" fill="#F42A41"/>`,
+    CH: () => `<rect width="30" height="20" fill="#DA291C"/><rect x="13" y="5" width="4" height="10" fill="#fff"/><rect x="10" y="8" width="10" height="4" fill="#fff"/>`,
+    SE: () => croixN("#005293", "#FECB00"),
+    NO: () => `<rect width="30" height="20" fill="#BA0C2F"/><rect x="9.5" width="6" height="20" fill="#fff"/><rect y="7" width="30" height="6" fill="#fff"/><rect x="11" width="3" height="20" fill="#00205B"/><rect y="8.5" width="30" height="3" fill="#00205B"/>`,
+    DK: () => croixN("#C8102E", "#fff"),
+    FI: () => croixN("#fff", "#003580"),
+    GR: () => `<rect width="30" height="20" fill="#fff"/>${bandes(9, "#0D5EAF", "#fff")}<rect width="12" height="11.1" fill="#0D5EAF"/><rect x="4.6" width="2.8" height="11.1" fill="#fff"/><rect y="4.1" width="12" height="2.8" fill="#fff"/>`,
+    AT: () => htri("#ED2939", "#fff", "#ED2939"),
+    PT: () => `<rect width="30" height="20" fill="#DA291C"/><rect width="12" height="20" fill="#046A38"/><circle cx="12" cy="10" r="4.2" fill="#FFE900" stroke="#DA291C" stroke-width="1"/>`,
+    CN: () => `<rect width="30" height="20" fill="#DE2910"/><circle cx="6" cy="6" r="3" fill="#FFDE00"/><circle cx="11.5" cy="2.6" r="1" fill="#FFDE00"/><circle cx="13.5" cy="5.2" r="1" fill="#FFDE00"/><circle cx="13.5" cy="8.6" r="1" fill="#FFDE00"/><circle cx="11.5" cy="11" r="1" fill="#FFDE00"/>`,
+    VN: () => `<rect width="30" height="20" fill="#DA251D"/><circle cx="15" cy="10" r="4.4" fill="#FFFF00"/>`,
+    KR: () => `<rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="4.6" fill="#CD2E3A"/><path d="M10.4 10a4.6 4.6 0 0 1 9.2 0 2.3 2.3 0 0 0-4.6 0 2.3 2.3 0 0 1-4.6 0z" fill="#0047A0"/>`,
+    IN: () => `<rect width="30" height="20" fill="#fff"/><rect width="30" height="6.67" fill="#FF9933"/><rect y="13.33" width="30" height="6.67" fill="#138808"/><circle cx="15" cy="10" r="2.7" fill="none" stroke="#000080" stroke-width="1"/>`,
+    NG: () => vtri("#008751", "#fff", "#008751"),
+    PK: () => `<rect width="30" height="20" fill="#01411C"/><rect width="7.5" height="20" fill="#fff"/><circle cx="19" cy="10" r="4.4" fill="#fff"/><circle cx="20.7" cy="8.6" r="4.4" fill="#01411C"/>`,
+    ET: () => `${htri("#078930", "#FCDD09", "#DA121A")}<circle cx="15" cy="10" r="4.4" fill="#0F47AF"/>`,
+    EG: () => `${htri("#CE1126", "#fff", "#000")}<circle cx="15" cy="10" r="2.2" fill="#C09300"/>`,
+    MA: () => `<rect width="30" height="20" fill="#C1272D"/><path d="M15 5.6l1.6 4.9-4.2-3h5.2l-4.2 3z" fill="none" stroke="#006233" stroke-width="1"/>`,
+    DZ: () => `<rect width="30" height="20" fill="#006233"/><rect x="15" width="15" height="20" fill="#fff"/><circle cx="15" cy="10" r="4.4" fill="#D21034"/><circle cx="16.6" cy="10" r="3.6" fill="#fff"/>`,
+    TN: () => `<rect width="30" height="20" fill="#E70013"/><circle cx="15" cy="10" r="5.4" fill="#fff"/><circle cx="15" cy="10" r="3.6" fill="#E70013"/><circle cx="16.4" cy="10" r="2.8" fill="#fff"/>`,
+    TR: () => `<rect width="30" height="20" fill="#E30A17"/><circle cx="12" cy="10" r="4.4" fill="#fff"/><circle cx="13.6" cy="10" r="3.5" fill="#E30A17"/><circle cx="18.4" cy="10" r="1.5" fill="#fff"/>`,
+    BR: () => `<rect width="30" height="20" fill="#009C3B"/><path d="M15 2.4 27.6 10 15 17.6 2.4 10z" fill="#FFDF00"/><circle cx="15" cy="10" r="4.4" fill="#002776"/>`,
+    AR: () => `${htri("#74ACDF", "#fff", "#74ACDF")}<circle cx="15" cy="10" r="2.2" fill="#F6B40E"/>`,
+    MX: () => `${vtri("#006847", "#fff", "#CE1126")}<circle cx="15" cy="10" r="2.2" fill="#8b5a2b"/>`,
+    CA: () => `<rect width="30" height="20" fill="#fff"/><rect width="7.5" height="20" fill="#D80621"/><rect x="22.5" width="7.5" height="20" fill="#D80621"/><path d="M15 4.4l1.2 3.4 2.6-1.2-1.2 3.6 3 .4-2.6 1.8 1 1.4-3.2-.5.4 3.3L15 15l-1.2 2.6.4-3.3-3.2.5 1-1.4-2.6-1.8 3-.4-1.2-3.6 2.6 1.2z" fill="#D80621"/>`,
+    GB: () => `<rect width="30" height="20" fill="#012169"/><path d="M0 0l30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0l30 20M30 0L0 20" stroke="#C8102E" stroke-width="2"/><path d="M15 0v20M0 10h30" stroke="#fff" stroke-width="6.5"/><path d="M15 0v20M0 10h30" stroke="#C8102E" stroke-width="4"/>`,
+    US: () => `${bandes(13, "#B31942", "#fff")}<rect width="13" height="10.8" fill="#0A3161"/>` +
+      [0, 1, 2, 3].map((r) => [0, 1, 2, 3, 4].map((c) =>
+        `<circle cx="${1.6 + c * 2.6 + (r % 2 ? 1.3 : 0)}" cy="${1.6 + r * 2.6}" r=".72" fill="#fff"/>`).join("")).join(""),
+    AU: () => `<rect width="30" height="20" fill="#012169"/><path d="M0 0l15 10M15 0L0 10" stroke="#fff" stroke-width="2.6"/><path d="M7.5 0v10M0 5h15" stroke="#fff" stroke-width="3.4"/><path d="M7.5 0v10M0 5h15" stroke="#C8102E" stroke-width="2"/><circle cx="7.5" cy="15.6" r="1.5" fill="#fff"/><circle cx="22" cy="6" r="1" fill="#fff"/><circle cx="25.6" cy="12" r="1" fill="#fff"/><circle cx="20.4" cy="14" r=".9" fill="#fff"/>`,
+  };
+  const CODES = {
+    "france": "FR", "allemagne": "DE", "italie": "IT", "espagne": "ES", "royaume-uni": "GB",
+    "royaume uni": "GB", "grande-bretagne": "GB", "angleterre": "GB",
+    "etats-unis": "US", "états-unis": "US", "etats unis": "US", "usa": "US",
+    "chine": "CN", "inde": "IN", "japon": "JP", "bresil": "BR", "brésil": "BR",
+    "russie": "RU", "canada": "CA", "belgique": "BE", "pays-bas": "NL", "suisse": "CH",
+    "portugal": "PT", "mexique": "MX", "nigeria": "NG", "nigéria": "NG",
+    "indonesie": "ID", "indonésie": "ID", "turquie": "TR", "egypte": "EG", "égypte": "EG",
+    "pakistan": "PK", "bangladesh": "BD", "ethiopie": "ET", "éthiopie": "ET",
+    "vietnam": "VN", "viêt nam": "VN", "coree du sud": "KR", "corée du sud": "KR",
+    "australie": "AU", "argentine": "AR", "pologne": "PL", "maroc": "MA",
+    "algerie": "DZ", "algérie": "DZ", "tunisie": "TN", "senegal": "SN", "sénégal": "SN",
+    "luxembourg": "LU", "irlande": "IE", "suede": "SE", "suède": "SE",
+    "norvege": "NO", "norvège": "NO", "danemark": "DK", "finlande": "FI",
+    "grece": "GR", "grèce": "GR", "autriche": "AT", "roumanie": "RO", "ukraine": "UA",
+  };
+  function drapeau(nom, code) {
+    const c = (code || CODES[String(nom).toLowerCase().trim()] || "").toUpperCase();
+    const f = DRAPEAUX[c];
+    if (f) return `<svg viewBox="0 0 30 20" aria-hidden="true">${f()}</svg>`;
+    const deux = c || String(nom).replace(/[^A-Za-zÀ-ÿ]/g, "").slice(0, 2).toUpperCase();
+    return `<span class="att-pays-code" aria-hidden="true">${echap(deux)}</span>`;
   }
 
-  /* ============================================================
-     5. STYLES
-     ============================================================ */
-  var CSS = ''
-    + '.att-stand{position:absolute;inset:auto auto 12px 12px;z-index:40;'
-      + 'font-family:"Segoe UI",system-ui,sans-serif}'
-    + '.att-stand-icone{padding:4px 6px;border-radius:10px;background:' + C.nuit + ';'
-      + 'border:1.5px solid ' + C.cyan + ';cursor:pointer;line-height:0;'
-      + 'box-shadow:0 4px 14px rgba(0,0,0,.35)}'
-    + '.att-stand-icone svg{display:block;image-rendering:pixelated}'
-    + '.att-stand-icone:focus-visible{outline:2px solid ' + C.jauneForme + ';outline-offset:2px}'
-    + '.att-stand[data-ouvert="1"] .att-stand-icone{border-color:' + C.jauneForme + ';'
-      + 'position:absolute;bottom:0;left:0;transform:translate(-8px,8px) scale(.7)}'
-
-    + '.att-stand-carte{position:absolute;bottom:0;left:0;width:min(568px,calc(100vw - 32px));'
-      + 'border-radius:12px;overflow:hidden;background:' + C.nuit + ';'
-      + 'border:1.5px solid ' + C.canard + ';box-shadow:0 18px 44px rgba(0,0,0,.5);display:none}'
-    + '.att-stand[data-ouvert="1"] .att-stand-carte{display:block}'
-    + '.att-stand-tete{display:flex;align-items:baseline;justify-content:space-between;'
-      + 'gap:12px;padding:7px 12px 5px;border-bottom:1px solid rgba(109,213,220,.25)}'
-    + '.att-stand-tete h4{margin:0;font-family:Georgia,serif;font-size:15px;'
-      + 'font-weight:600;color:#EAF2F3}'
-    + '.att-stand-score{font-family:Georgia,serif;font-size:22px;color:' + C.jauneTexte + ';'
-      + 'font-variant-numeric:tabular-nums;line-height:1}'
-    + '.att-stand-score span{font-size:11px;font-family:"Segoe UI",sans-serif;'
-      + 'color:' + C.cyan + ';margin-left:4px}'
-
-    + '.att-ciel{position:relative;overflow:hidden;cursor:crosshair;line-height:0;height:296px}'
-    + '.att-fond{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;'
-      + 'image-rendering:pixelated}'
-
-    + '.att-canard{position:absolute;left:0;top:0;will-change:transform;cursor:crosshair;line-height:0}'
-    + '.att-canard svg{display:block;image-rendering:pixelated}'
-    /* changement de pose par opacité en steps : les trois poses sont dans le
-       même SVG, rien à calculer en JS à chaque image */
-    + '.att-f0{animation:att-p0 .27s steps(1,end) infinite}'
-    + '.att-f1{animation:att-p1 .27s steps(1,end) infinite}'
-    + '.att-f2{animation:att-p2 .27s steps(1,end) infinite}'
-    + '@keyframes att-p0{0%,33.3%{opacity:1}33.4%,100%{opacity:0}}'
-    + '@keyframes att-p1{0%,33.3%{opacity:0}33.4%,66.6%{opacity:1}66.7%,100%{opacity:0}}'
-    + '@keyframes att-p2{0%,66.6%{opacity:0}66.7%,100%{opacity:1}}'
-
-    + '.att-chien{position:absolute;left:0;bottom:0;will-change:transform;'
-      + 'pointer-events:none;z-index:3;line-height:0}'
-    + '.att-chien svg{display:block;image-rendering:pixelated}'
-    + '.att-chien .att-f0{animation:att-c0 .3s steps(1,end) infinite}'
-    + '.att-chien .att-f1{animation:att-c1 .3s steps(1,end) infinite}'
-    + '@keyframes att-c0{0%,50%{opacity:1}50.1%,100%{opacity:0}}'
-    + '@keyframes att-c1{0%,50%{opacity:0}50.1%,100%{opacity:1}}'
-    + '.att-chien.att-arret .att-f0{animation:none;opacity:1}'
-    + '.att-chien.att-arret .att-f1{animation:none;opacity:0}'
-
-    /* croix d'impact en pixels, pas un cercle : on est en pixel art */
-    + '.att-impact{position:absolute;width:15px;height:15px;margin:-7px 0 0 -7px;'
-      + 'pointer-events:none;background:' + C.jauneForme + ';'
-      + 'animation:att-impact .3s steps(3,end) forwards;'
-      + 'clip-path:polygon(40% 0,60% 0,60% 40%,100% 40%,100% 60%,60% 60%,'
-      + '60% 100%,40% 100%,40% 60%,0 60%,0 40%,40% 40%)}'
-    + '@keyframes att-impact{from{transform:scale(.5);opacity:1}to{transform:scale(1.6);opacity:0}}'
-    + '.att-gain{position:absolute;font-family:Georgia,serif;font-size:17px;font-weight:700;'
-      + 'color:' + C.jauneTexte + ';text-shadow:0 2px 0 rgba(0,0,0,.75);pointer-events:none;'
-      + 'animation:att-gain .8s steps(8,end) forwards}'
-    + '@keyframes att-gain{from{transform:translateY(0);opacity:1}to{transform:translateY(-26px);opacity:0}}'
-
-    + '.att-bareme{display:flex;gap:14px;flex-wrap:wrap;padding:6px 12px 7px 58px;'
-      + 'border-top:1px solid rgba(109,213,220,.25);font-size:11.5px;color:#BFD4D7}'
-    + '.att-bareme b{color:#EAF2F3;font-weight:600}'
-    + '.att-bareme i{width:9px;height:9px;display:inline-block;margin-right:5px}'
-
-    + '@media (prefers-reduced-motion:reduce){'
-      + '.att-f0,.att-f1,.att-f2{animation-duration:.9s}'
-      + '.att-chien .att-f0,.att-chien .att-f1{animation-duration:.9s}}';
-
-  /* ============================================================
-     6. MOTEUR DE JEU
-     ============================================================ */
-  var hote = null, racine = null, ciel = null, elScore = null;
-  var canards = [], gisants = [], chiens = [];
-  var score = 0, p = 0, ouvert = false, raf = null;
-  var dernier = 0, prochainTir = 0, dernierRare = -1e9, horloge = 0;
-  var MAX_CHIENS = 2, MAX_PRISES = 3, SOL = 26;   // hauteur de la berge, en px
-
-  function lerp(a, b, t) { return a + (b - a) * t; }
-  function alea(a, b) { return a + Math.random() * (b - a); }
-
-  function styles() {
-    if (document.getElementById('att-stand-css')) return;
-    var s = document.createElement('style');
-    s.id = 'att-stand-css';
-    s.textContent = CSS;
-    document.head.appendChild(s);
-  }
-
+  /* ================= CONSTRUCTION DU VOILE ================= */
   function construire() {
-    styles();
-    racine = document.createElement('div');
-    racine.className = 'att-stand';
-    racine.setAttribute('data-ouvert', '0');
-    var puce = function (k) {
-      return '<span><i style="background:' + ESPECES[k].teinte + '"></i>'
-        + ESPECES[k].nom + ' <b>' + ESPECES[k].points + '</b></span>';
+    if ($("att-voile")) return;
+    const style = document.createElement("style");
+    style.textContent = CSS;
+    document.head.appendChild(style);
+
+    const v = document.createElement("div");
+    v.id = "att-voile";
+    v.setAttribute("role", "status");
+    v.setAttribute("aria-live", "polite");
+    v.innerHTML = `
+  <div id="att-echec"><span id="att-echec-msg"></span><button id="att-echec-fermer">Masquer l'écran d'attente</button></div>
+
+  <div class="att-depeche" id="att-depeche">
+    <span class="att-depeche-etiq">FIL D'ACTUALITÉ</span>
+    <div class="att-depeche-int" id="att-depeche-int"></div>
+  </div>
+
+  <div class="att-haut">
+    <div class="att-logo">FIDAL NOTAIRES</div>
+    <div class="att-titre" id="att-titre">Génération en cours</div>
+    <div class="att-sous" id="att-sous"></div>
+    <div class="att-phase" id="att-phase">Préparation…</div>
+    <div class="att-barre"><div id="att-barre-int"></div></div>
+    <div class="att-compte" id="att-compte"></div>
+  </div>
+
+  <div class="att-cadre">
+   <div class="att-corps" id="att-corps">
+  <div class="att-trame" id="att-trame"><div id="att-coin"></div></div>
+
+  <div class="att-cartes">
+    <div class="att-carte att-panneau" id="att-c-classements">
+      <div class="att-panneau-tete">
+        <span class="att-led-vive"></span>
+        <h3 id="att-c-classements-t">Ligue 1</h3>
+        <span class="att-panneau-jour" id="att-c-classements-j"></span>
+      </div>
+      <div class="att-ecran">
+        <table>
+          <thead><tr><td></td><td>Équipe</td><td style="text-align:right">Pts</td></tr></thead>
+          <tbody id="att-c-classements-b"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="att-carte att-cult att-film" id="att-c-cinema">
+      <h3 id="att-c-cinema-t">Au cinéma</h3>
+      <ul id="att-c-cinema-l"></ul>
+    </div>
+
+    <div class="att-carte att-cult att-cadre-or" id="att-c-arts">
+      <div class="att-toile">
+        <h3 id="att-c-arts-t">Arts</h3>
+        <ul id="att-c-arts-l"></ul>
+      </div>
+    </div>
+
+    <div class="att-carte att-cult att-livre" id="att-c-livres">
+      <h3 id="att-c-livres-t">Livres</h3>
+      <ul id="att-c-livres-l"></ul>
+    </div>
+
+    <div class="att-carte att-compteur" id="att-c-compteurs">
+      <div class="att-comp-haut">
+        <svg class="att-cadran" viewBox="0 0 42 42" aria-hidden="true">
+          <circle cx="21" cy="21" r="19.5" fill="#0b1622" stroke="#3d5568" stroke-width="1.4"/>
+          <circle cx="21" cy="21" r="15" fill="none" stroke="#22323f" stroke-width=".8"/>
+          <g stroke="${C.sourdine}" stroke-width="1.1">
+            <path d="M21 4.5v3.4"/><path d="M37.5 21h-3.4"/><path d="M21 37.5v-3.4"/><path d="M4.5 21h3.4"/>
+          </g>
+          <path class="att-cadran-aig" id="att-cadran-aig" d="M21 21L21 8" stroke="${C.orange}" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="21" cy="21" r="2.3" fill="${C.laiton}"/>
+        </svg>
+        <h3>Pendant ce temps, dans le monde</h3>
+      </div>
+      <div class="att-grille" id="att-grille"></div>
+    </div>
+
+    </div>
+  </div>
+   </div>
+  </div>
+
+  <div class="att-poste" id="att-poste">
+    <div class="att-echelle" id="att-echelle" role="slider" tabindex="0"
+         aria-label="Choix de la station" aria-valuemin="0" aria-valuemax="${CRANS.length - 1}" aria-valuenow="0">
+      <div class="att-grad"></div>
+      <div class="att-crans" id="att-crans"></div>
+      <div class="att-aiguille" id="att-aiguille"></div>
+    </div>
+    <div class="att-poste-pied">
+      <span><span class="att-temoin"></span><span id="att-poste-etat">Silence</span></span>
+      <span>Glissez l'aiguille ou cliquez une station</span>
+    </div>
+  </div>`;
+    document.body.appendChild(v);
+
+    $("att-echec-fermer").onclick = () => { $("att-echec").classList.remove("on"); v.classList.remove("on"); };
+    construireCadran();
+    chargerStand();
+    // le corps change de taille au fil des chargements : on re-mesure tout seul
+    if (window.ResizeObserver) {
+      try { new ResizeObserver(ajuster).observe($("att-corps")); } catch (e) {}
+    }
+  }
+
+  /* ================= TRAME PARCELLAIRE =================
+     Fournie par l'outil, ou générée : grille 12×5 aux sommets chahutés par un
+     pseudo-aléa DÉTERMINISTE (même dessin à chaque attente : c'est un décor,
+     pas une loterie). Colorisation de gauche à droite au rythme de la barre. */
+  function alea(graine) { return () => (graine = (graine * 16807) % 2147483647) / 2147483647; }
+  function trameGenerique() {
+    const r = alea(75008); // clin d'œil au code postal du cabinet
+    const NX = 22, NY = 4, W = 1540, H = 250, mx = W / NX, my = H / NY;
+    const px = [], sommets = [];
+    for (let j = 0; j <= NY; j++) { sommets[j] = []; for (let i = 0; i <= NX; i++) {
+      const bx = i === 0 || i === NX ? 0 : (r() - .5) * mx * .55;
+      const by = j === 0 || j === NY ? 0 : (r() - .5) * my * .55;
+      sommets[j][i] = [i * mx + bx, j * my + by];
+    }}
+    for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+      const p = [sommets[j][i], sommets[j][i + 1], sommets[j + 1][i + 1], sommets[j + 1][i]];
+      px.push(`<polygon class="att-parc" points="${p.map((c) => c.map((n) => n.toFixed(1)).join(",")).join(" ")}"/>`);
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${px.join("")}</svg>`;
+  }
+  function poserTrame(svg) {
+    const bloc = $("att-trame");
+    const coin = $("att-coin");
+    bloc.innerHTML = "";
+    const enveloppe = document.createElement("div");
+    enveloppe.style.cssText = "width:100%;height:100%;display:flex;align-items:center;justify-content:center";
+    enveloppe.innerHTML = svg || trameGenerique();
+    bloc.appendChild(enveloppe);
+    bloc.appendChild(coin); // le coin réservé au stand de tir survit au remplacement
+    const formes = enveloppe.querySelectorAll("path,polygon,rect,circle");
+    formes.forEach((f) => f.classList.add("att-parc"));
+    E.parcelles = Array.from(formes).sort((a, b) => {
+      const ra = a.getBBox(), rb = b.getBBox();
+      return (ra.x + ra.width / 2) - (rb.x + rb.width / 2);
+    });
+    E.faites = 0;
+  }
+  function coloriser(pct) {
+    const cible = Math.round((pct / 100) * E.parcelles.length);
+    const teintes = [C.canard, C.cyan, C.orange, C.carmin, C.jauneForme];
+    while (E.faites < cible && E.faites < E.parcelles.length) {
+      const p = E.parcelles[E.faites];
+      p.style.fill = teintes[E.faites % teintes.length];
+      p.classList.add("faite");
+      E.faites++;
+    }
+  }
+
+  /* ================= PROGRESSION =================
+     Suivi du sablier de l'outil hôte, motif PAINT : on relit la source toutes
+     les 400 ms ; « 12 sur 30 », « 12/30 » et « 43 % » y sont reconnus. Zéro
+     instrumentation des boucles : elles parlent déjà. */
+  function lireSource() {
+    let texte = "";
+    try {
+      if (typeof E.source === "function") texte = E.source() || "";
+      else if (typeof E.source === "string") {
+        const n = document.querySelector(E.source);
+        texte = (n && n.textContent) || "";
+      }
+    } catch (e) { /* la source peut disparaître entre deux phases : silence */ }
+    if (!texte) return;
+    $("att-phase").textContent = texte;
+    let m = texte.match(/(\d+)\s*(?:sur|\/)\s*(\d+)/i);
+    if (m && +m[2] > 0) {
+      appliquer((+m[1] / +m[2]) * 100, null);
+      $("att-compte").textContent = m[1] + " sur " + m[2];
+      return;
+    }
+    m = texte.match(/(\d{1,3})\s*%/);
+    if (m) appliquer(+m[1], null);
+  }
+  function appliquer(pct, phase) {
+    pct = Math.max(0, Math.min(100, pct));
+    E.pct = pct;
+    $("att-barre-int").style.width = pct + "%";
+    if (phase) $("att-phase").textContent = phase;
+    coloriser(pct);
+    standProgression(pct);   // le stand suit l'avancement réel du dossier
+    const aig = $("att-cadran-aig");                 // le cadran rond suit aussi
+    if (aig) aig.setAttribute("transform", "rotate(" + (-140 + pct * 2.8) + ")");
+  }
+
+  /* ================= DONNÉES /api/veille =================
+     Chaque type est indépendant ; une section sans donnée reste CACHÉE —
+     l'écran d'attente ne montre jamais son échec. Seules les actus se
+     rafraîchissent (5 min, aligné sur leur cache CDN). */
+  function veille(type) {
+    return fetch(BASE + "/api/veille?type=" + type)
+      .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  }
+
+  function chargerActus() {
+    veille("actus").then((d) => {
+      if (!d.titres || !d.titres.length) return;
+      const html = d.titres.map((x) => `<b>${echap(x.s)}</b>${echap(x.t)}<i>◆</i>`).join("");
+      const int = $("att-depeche-int");
+      int.innerHTML = html;
+      int.style.setProperty("--att-dur", Math.max(150, d.titres.length * 14) + "s");
+      $("att-depeche").classList.add("on");
+    }).catch(() => {});
+  }
+
+  function chargerClassements() {
+    veille("classements").then((d) => {
+      const l = d.ligue1 || d.classement || [];
+      if (!l.length) return;
+      $("att-c-classements-t").textContent = d.competition || "Ligue 1";
+      const j = d.journee || d.matchday;
+      $("att-c-classements-j").textContent = j ? "J. " + j : "";
+      $("att-c-classements-b").innerHTML = l.map((x, i) => {
+        const r = +(x.rang ?? i + 1);
+        const genre = r <= 3 ? " podium" : r <= 6 ? " euro" : "";
+        return `<tr><td><span class="att-rang${genre}">${r}</span></td>` +
+          `<td class="equipe">${echap(String(x.equipe ?? ""))}</td>` +
+          `<td class="pts">${x.points ?? ""}</td></tr>`;
+      }).join("");
+      $("att-c-classements").classList.add("on");
+      ajuster();
+    }).catch(() => {});
+  }
+
+  /* Culturel : les trois rubriques dans TROIS cartes autonomes (02/09). Chacune
+     apparaît seulement si sa rubrique a des données — une source muette laisse
+     simplement une carte en moins, jamais un cadre vide. Repli conservé : si
+     /api/veille ne renvoie qu'un `titres` global, on le verse dans la pellicule
+     sous l'intitulé « À l'affiche ». */
+  function chargerCulturel() {
+    veille("culturel").then((d) => {
+      const poser = (id, liste, max) => {
+        if (!Array.isArray(liste) || !liste.length) return false;
+        $(id + "-l").innerHTML = liste.slice(0, max).map((x) => {
+          const t = typeof x === "string" ? x : (x && x.t) || "";
+          const u = typeof x === "string" ? "" : lien(x && x.u);
+          const inner = u
+            ? `<a href="${echap(u)}" target="_blank" rel="noopener noreferrer">${echap(t)}</a>`
+            : echap(t);
+          // title= porte le titre ENTIER : les lignes sont tronquées à trois
+          // lignes, le survol rend le reste lisible sans quitter l'écran.
+          return `<li title="${echap(t)}">${inner}</li>`;
+        }).join("");
+        $(id).classList.add("on");
+        return true;
+      };
+      // ⚠ 4 titres par rubrique : c'est TOUT ce que /api/veille en renvoie
+      // (itemsRSS → slice(0, 4) côté serveur). Pour en afficher davantage il
+      // faut d'abord lever cette limite dans veille.js, sinon rien ne change.
+      let une = false;
+      if (poser("att-c-cinema", d.cinema || d.cinéma, 4)) une = true;
+      if (poser("att-c-arts", d.expos || d.expositions, 4)) une = true;
+      if (poser("att-c-livres", d.livres, 4)) une = true;
+      if (!une && d.titres && d.titres.length) {
+        poser("att-c-cinema", d.titres, 4);
+        $("att-c-cinema-t").textContent = "À l'affiche";
+      }
+      ajuster();
+    }).catch(() => {});
+  }
+
+  /* Compteurs : les 9 pays en grille SIMULTANÉE, chacun avec son drapeau
+     (décision du 01/09 — plus de défilé, plus d'onglets). */
+  function chargerCompteurs() {
+    veille("compteurs").then((d) => {
+      if (!d.pays || !d.pays.length) return;
+      E.compteurs = d;
+      E.roues = [];
+      const grille = $("att-grille");
+      grille.innerHTML = "";
+      d.pays.forEach((p) => {
+        const cell = document.createElement("div");
+        cell.className = "att-pays";
+        cell.innerHTML =
+          `<div class="att-pays-tete">${drapeau(p.nom, p.code)}<span class="att-pays-nom">${echap(p.nom)}</span></div>` +
+          `<div class="att-ligne"><span class="att-ligne-lib">hab.</span>` +
+          `<span class="att-vitre"><span class="att-od-val"></span></span>` +
+          fleche(p.popParSec, true, "Population en hausse", "Population en baisse") + `</div>` +
+          `<div class="att-ligne"><span class="att-ligne-lib">dette</span>` +
+          `<span class="att-vitre"><span class="att-od-val dette"></span><span class="att-od-suf"></span></span>` +
+          fleche(p.detteParSec, false, "Dette en hausse", "Dette en baisse") + `</div>`;
+        grille.appendChild(cell);
+        const vals = cell.querySelectorAll(".att-od-val");
+        E.roues.push({
+          pays: p,
+          pop: roue(vals[0], 3),
+          dette: roue(vals[1], 3),
+          suf: cell.querySelector(".att-od-suf"),
+        });
+      });
+      $("att-c-compteurs").classList.add("on");
+      tictacCompteurs(true);
+      ajuster();
+      clearInterval(E.compteursMinuterie);
+      E.compteursMinuterie = setInterval(() => tictacCompteurs(false), 1000);
+    }).catch(() => {});
+  }
+  /* Flèche de tendance. `taux` est le taux BRUT : son signe donne la direction
+     de la flèche. `bonSiHausse` dit seulement si monter est une bonne nouvelle,
+     et ne décide que de la couleur — d'où une dette qui monte en rouge, et une
+     dette qui reflue en vert vers le bas. Tiret gris si le taux est nul ou
+     absent. Le taux ne bouge pas pendant une attente : on dessine une fois. */
+  const FLECHE_HAUT = "M5 1.1L9.2 8.5H.8z";
+  const FLECHE_BAS = "M5 8.9L.8 1.5h8.4z";
+  function fleche(taux, bonSiHausse, titreHausse, titreBaisse) {
+    const n = Number(taux);
+    if (!isFinite(n) || n === 0) {
+      return `<svg class="att-fleche plat" viewBox="0 0 10 10" role="img" aria-label="Tendance inconnue">` +
+        `<title>Tendance inconnue</title><path d="M1 4.1h8v1.8H1z"/></svg>`;
+    }
+    const hausse = n > 0;
+    const genre = hausse === !!bonSiHausse ? "bon" : "mauvais";
+    const titre = hausse ? titreHausse : titreBaisse;
+    return `<svg class="att-fleche ${genre}" viewBox="0 0 10 10" role="img" aria-label="${titre}">` +
+      `<title>${titre}</title><path d="${hausse ? FLECHE_HAUT : FLECHE_BAS}"/></svg>`;
+  }
+
+  /* ================= TENIR À L'ÉCRAN =================
+     Exigence du 02/09 : tout visible, aucun défilement. Plutôt que de rogner
+     une carte — un chiffre coupé en deux est pire qu'un chiffre plus petit —
+     on mesure ce que le corps réclame et on le réduit juste ce qu'il faut.
+     offsetHeight ignore les transformations, donc la mesure reste stable et
+     l'échelle ne peut pas s'auto-entretenir. Plancher à 0,58 : en dessous ce
+     serait illisible, et mieux vaut alors déborder discrètement. */
+  function ajuster() {
+    const cadre = document.querySelector("#att-voile .att-cadre");
+    const corps = $("att-corps");
+    if (!cadre || !corps) return;
+    const besoin = corps.offsetHeight, dispo = cadre.clientHeight;
+    if (!besoin || !dispo) return;
+    const z = Math.min(1, Math.max(.58, dispo / besoin));
+    corps.style.setProperty("--att-z", z.toFixed(3));
+  }
+
+  function tictacCompteurs(saut) {
+    if (!E.compteurs) return;
+    const dt = (Date.now() - Date.parse(E.compteurs.reference)) / 1000;
+    E.roues.forEach((r) => {
+      const p = r.pays;
+      r.pop.poser(p.population + p.popParSec * dt, saut);
+      r.dette.poser(p.dette + p.detteParSec * dt, saut);
+      if (r.suf.textContent !== (p.devise || "")) r.suf.textContent = p.devise || "";
+    });
+  }
+
+  /* ================= TAMBOUR À CHIFFRES =================
+     Les chiffres de tête sont du texte fixe ; seuls les `nRoul` derniers sont
+     des bandes 0-9 translatées en transform (compositeur, pas de layout).
+     Reconstruction uniquement quand la partie fixe change — soit à chaque
+     retenue, c'est-à-dire rarement. */
+  function roue(el, nRoul) {
+    let cols = [], fixe = null;
+    function sep() { const s = document.createElement("span"); s.className = "att-od-sep"; return s; }
+    function batir(s) {
+      el.innerHTML = "";
+      cols = [];
+      const L = s.length;
+      for (let i = 0; i < L; i++) {
+        if (i && (L - i) % 3 === 0) el.appendChild(sep());
+        if (L - i <= nRoul) {
+          const col = document.createElement("span"); col.className = "att-od-col";
+          const strip = document.createElement("span"); strip.className = "att-od-strip";
+          for (let d = 0; d <= 9; d++) { const c = document.createElement("span"); c.textContent = d; strip.appendChild(c); }
+          col.appendChild(strip); el.appendChild(col); cols.push(strip);
+        } else {
+          const st = document.createElement("span"); st.className = "att-od-fixe";
+          st.textContent = s[i]; el.appendChild(st);
+        }
+      }
+    }
+    return {
+      poser(n, saut) {
+        const s = String(Math.max(0, Math.round(n)));
+        const tete = s.slice(0, Math.max(0, s.length - nRoul));
+        if (tete !== fixe) { batir(s); fixe = tete; saut = true; }
+        const roul = s.slice(-nRoul);
+        for (let i = 0; i < cols.length && i < roul.length; i++) {
+          const c = cols[i];
+          if (saut) c.style.transition = "none";
+          c.style.transform = "translateY(-" + (+roul[i] * 1.2) + "em)";
+          if (saut) requestAnimationFrame(() => { c.style.transition = ""; });
+        }
+      },
     };
-    racine.innerHTML = ''
-      + '<div class="att-stand-carte" role="group" aria-label="Stand de tir">'
-      +   '<div class="att-stand-tete"><h4>Stand de tir</h4>'
-      +     '<div class="att-stand-score">0<span>points</span></div></div>'
-      +   '<div class="att-ciel">'
-      +     '<svg class="att-fond" viewBox="0 0 189 99" preserveAspectRatio="none"'
-      +       ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
-      +   '</div>'
-      +   '<div class="att-bareme">' + puce('colvert') + puce('souchet')
-      +     puce('sarcelle') + puce('mandarin') + '</div>'
-      + '</div>'
-      + '<button class="att-stand-icone" type="button" aria-label="Ouvrir le stand de tir">'
-      +   canardFixe(ESPECES.colvert, 2) + '</button>';
-
-    ciel = racine.querySelector('.att-ciel');
-    elScore = racine.querySelector('.att-stand-score');
-    ciel.querySelector('.att-fond').innerHTML = decor(189, 99);
-
-    racine.querySelector('.att-stand-icone')
-      .addEventListener('click', function () { ouvert ? replier() : deplier(); });
-    ciel.addEventListener('pointerdown', tir);
-    hote.appendChild(racine);
   }
 
-  function deplier() {
-    ouvert = true;
-    racine.setAttribute('data-ouvert', '1');
-    dernier = performance.now();
-    prochainTir = 0.8;
-    if (!raf) boucle();
-  }
-  function replier() {
-    /* le score est conservé tant que la génération tourne : on gèle la
-       partie, on ne la remet pas à zéro */
-    ouvert = false;
-    racine.setAttribute('data-ouvert', '0');
-    if (raf) { cancelAnimationFrame(raf); raf = null; }
-  }
-
-  function lacher(rare) {
-    var W = ciel.clientWidth, H = ciel.clientHeight;
-    if (!W || !H) return;
-    var cle;
-    if (rare) cle = 'mandarin';
-    else {
-      var total = 0, k;
-      for (k in ESPECES) total += ESPECES[k].poids;
-      var d = Math.random() * total;
-      for (k in ESPECES) { d -= ESPECES[k].poids; if (d <= 0) { cle = k; break; } }
+  /* ================= CADRAN RADIO =================
+     Vieux poste horizontal : aiguille sur échelle graduée, cinq crans dont
+     « silence » à gauche. Silence au lancement, sans mémorisation. Un
+     grésillement de bande passante accompagne chaque déplacement — c'est le
+     seul son que le module produise lui-même. */
+  let ctxAudio = null, bruitSrc = null;
+  function ctx() {
+    if (!ctxAudio) {
+      const A = window.AudioContext || window.webkitAudioContext;
+      if (!A) return null;
+      ctxAudio = new A();
     }
-    var e = ESPECES[cle];
-    var dir = Math.random() < .62 ? 1 : -1;
-    var l = 22 * e.ech, h = 20 * e.ech;
-    var base = alea(H * .05, Math.max(0, H - SOL - h));
-    var el = document.createElement('div');
-    el.className = 'att-canard';
-    el.innerHTML = canardSVG(e);
-    ciel.appendChild(el);
-    var c = { el: el, esp: e, dir: dir, l: l, h: h,
-      x: dir === 1 ? -l - 8 : W + 8, y: base, base: base,
-      v: e.vitesse * lerp(96, 178, p) * (rare ? 1 : alea(.9, 1.1)), vy: 0,
-      amp: rare ? alea(5, 11) : alea(11, 24), per: alea(1.5, 2.6),
-      ph: Math.random() * 6.28, touche: false, gisant: false, reserve: false };
-    el.addEventListener('pointerdown', function (ev) { ev.stopPropagation(); toucher(c, ev); });
-    canards.push(c);
-    poser(c);
+    if (ctxAudio.state === "suspended") ctxAudio.resume().catch(() => {});
+    return ctxAudio;
   }
-  /* positions ARRONDIES : un sprite posé sur un demi-pixel bave */
-  function poser(c) {
-    c.el.style.transform = 'translate3d(' + Math.round(c.x) + 'px,' + Math.round(c.y)
-      + 'px,0) scaleX(' + (c.dir === 1 ? 1 : -1) + ')';
+  function bruitBuffer(a, secondes) {
+    const n = Math.floor(a.sampleRate * secondes);
+    const buf = a.createBuffer(1, n, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+  function chaineBruit(a, boucle) {
+    const src = a.createBufferSource();
+    src.buffer = bruitBuffer(a, boucle ? 1 : .45);
+    src.loop = !!boucle;
+    const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1750; bp.Q.value = .8;
+    const g = a.createGain(); g.gain.value = 0.0001;
+    src.connect(bp).connect(g).connect(a.destination);
+    return { src, g };
+  }
+  function gresiller() {                       // souffle court : saut de cran
+    const a = ctx(); if (!a) return;
+    try {
+      const { src, g } = chaineBruit(a, false);
+      const t = a.currentTime;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(.075, t + .05);
+      g.gain.exponentialRampToValueAtTime(.0001, t + .42);
+      src.start(); src.stop(t + .45);
+    } catch (e) {}
+  }
+  function gresillerDebut() {                  // souffle tenu : aiguille tirée
+    const a = ctx(); if (!a || bruitSrc) return;
+    try {
+      const { src, g } = chaineBruit(a, true);
+      g.gain.linearRampToValueAtTime(.06, a.currentTime + .12);
+      src.start();
+      bruitSrc = { src, g };
+    } catch (e) {}
+  }
+  function gresillerFin() {
+    if (!bruitSrc || !ctxAudio) { bruitSrc = null; return; }
+    try {
+      const t = ctxAudio.currentTime;
+      bruitSrc.g.gain.linearRampToValueAtTime(.0001, t + .1);
+      bruitSrc.src.stop(t + .15);
+    } catch (e) {}
+    bruitSrc = null;
   }
 
-  function toucher(c, ev) {
-    if (c.touche) return;
-    c.touche = true;
-    c.vy = 40;
-    c.el.innerHTML = canardFixe(c.esp);   // ailes hautes figées, comme dans Duck Hunt
-    score += c.esp.points;
-    elScore.innerHTML = score + '<span>points</span>';
-    marque(ev, '+' + c.esp.points);
-  }
-  function pastille(ev, cls, txt, duree) {
-    var r = ciel.getBoundingClientRect();
-    var d = document.createElement('div');
-    d.className = cls;
-    if (txt) d.textContent = txt;
-    d.style.left = (ev.clientX - r.left - (txt ? 8 : 0)) + 'px';
-    d.style.top = (ev.clientY - r.top - (txt ? 14 : 0)) + 'px';
-    ciel.appendChild(d);
-    setTimeout(function () { d.remove(); }, duree);
-  }
-  function tir(ev) { pastille(ev, 'att-impact', '', 320); }
-  function marque(ev, txt) { pastille(ev, 'att-gain', txt, 820); }
+  function construireCadran() {
+    const crans = $("att-crans"), echelle = $("att-echelle");
+    CRANS.forEach((r, i) => {
+      const b = document.createElement("button");
+      b.className = "att-cran";
+      b.type = "button";
+      b.textContent = i === 0 ? "—" : r.nom;
+      b.style.left = posCran(i) + "%";
+      b.dataset.i = i;
+      b.title = i === 0 ? "Couper le son" : "Écouter " + r.nom;
+      b.onclick = (ev) => { ev.stopPropagation(); allerAuCran(i); };
+      crans.appendChild(b);
+    });
 
-  /* ---------- chiens rapporteurs ----------
-     Un chien ramasse jusqu'à TROIS canards par tournée, et un second
-     n'entre qu'en rafale, par le bord opposé — jamais en file. */
-  function libre() {
-    for (var i = 0; i < gisants.length; i++) if (!gisants[i].reserve) return gisants[i];
-    return null;
+    // glissement de l'aiguille : le geste du poste, pointeur ou doigt
+    let actif = false;
+    const ratioDe = (ev) => {
+      const r = echelle.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
+    };
+    echelle.addEventListener("pointerdown", (ev) => {
+      actif = true;
+      echelle.setPointerCapture(ev.pointerId);
+      $("att-aiguille").classList.add("libre");
+      radioArreter(); majEtat("Recherche…");
+      gresillerDebut();
+      poserAiguille(ratioDe(ev));
+    });
+    echelle.addEventListener("pointermove", (ev) => { if (actif) poserAiguille(ratioDe(ev)); });
+    const relacher = (ev) => {
+      if (!actif) return;
+      actif = false;
+      $("att-aiguille").classList.remove("libre");
+      gresillerFin();
+      allerAuCran(cranLePlusProche(E.ratio), true);
+    };
+    echelle.addEventListener("pointerup", relacher);
+    echelle.addEventListener("pointercancel", relacher);
+    echelle.addEventListener("keydown", (ev) => {
+      if (ev.key === "ArrowRight" || ev.key === "ArrowUp") { allerAuCran(Math.min(CRANS.length - 1, E.cran + 1)); ev.preventDefault(); }
+      if (ev.key === "ArrowLeft" || ev.key === "ArrowDown") { allerAuCran(Math.max(0, E.cran - 1)); ev.preventDefault(); }
+      if (ev.key === "Home") { allerAuCran(0); ev.preventDefault(); }
+    });
+
+    poserAiguille(posCran(0) / 100);
   }
-  function plusProche(x) {
-    var best = null, d = 1e9;
-    for (var i = 0; i < gisants.length; i++) {
-      var g = gisants[i];
-      if (g.reserve) continue;
-      var e = Math.abs(g.x - x);
-      if (e < d) { d = e; best = g; }
-    }
+  function posCran(i) { return ((i + .5) / CRANS.length) * 100; }
+  function cranLePlusProche(ratio) {
+    let best = 0, d = 9;
+    CRANS.forEach((_, i) => { const e = Math.abs(posCran(i) / 100 - ratio); if (e < d) { d = e; best = i; } });
     return best;
   }
-  function creerChien(W) {
-    var cible = libre();
-    if (!cible) return;
-    var dir = chiens.length === 0 ? (cible.x < W / 2 ? 1 : -1) : -chiens[0].dir;
-    var el = document.createElement('div');
-    el.className = 'att-chien';
-    el.innerHTML = chienSVG(3);
-    ciel.appendChild(el);
-    cible.reserve = true;
-    chiens.push({ el: el, prise: el.querySelector('.att-prise'),
-      x: dir === 1 ? -120 : W + 120, dir: dir, etat: 'aller',
-      cible: cible, pause: 0, charges: [] });
+  function poserAiguille(ratio) {
+    E.ratio = ratio;
+    const echelle = $("att-echelle");
+    const px = ratio * echelle.clientWidth;
+    $("att-aiguille").style.transform = "translateX(" + px.toFixed(1) + "px)";
   }
-  /* Le rapport est dimensionné dans les UNITÉS DU SPRITE DU CHIEN (34 de
-     large), pas en pixels d'écran : en pixels, il couvrait toute sa tête. */
-  function dessinerPrise(d) {
-    if (!d.charges.length) { d.prise.innerHTML = ''; return; }
-    var h = '';
-    for (var i = 0; i < d.charges.length; i++) {
-      h += '<g transform="translate(' + (21 + i * 2) + ',' + (12 + i * 4)
-        + ') scale(.6)">' + runs(MORT, d.charges[i].esp.pal) + '</g>';
-    }
-    d.prise.innerHTML = h;
+  function majEtat(txt) { const e = $("att-poste-etat"); if (e) e.textContent = txt; }
+  function majCrans() {
+    document.querySelectorAll("#att-crans .att-cran").forEach((b) => {
+      const i = +b.dataset.i;
+      b.classList.toggle("on", i === E.cran);
+      b.classList.toggle("morte", !!E.mortes[CRANS[i].nom]);
+    });
+    $("att-echelle").setAttribute("aria-valuenow", E.cran);
+    $("att-poste").classList.toggle("joue", !!E.radioNom);
   }
-  function retirer(g) {
-    var i = gisants.indexOf(g); if (i >= 0) gisants.splice(i, 1);
-    var j = canards.indexOf(g); if (j >= 0) canards.splice(j, 1);
-    if (g.el) g.el.remove();
-  }
-  function majChiens(dt) {
-    var W = ciel.clientWidth, vitesse = 200;
-    if (libre() && chiens.length < MAX_CHIENS) {
-      if (chiens.length === 0 || gisants.length >= 3) creerChien(W);
-    }
-    for (var i = chiens.length - 1; i >= 0; i--) {
-      var d = chiens[i];
-      if (d.etat === 'aller') {
-        if (!d.cible || !d.cible.el.isConnected) { d.cible = null; d.etat = 'retour'; }
-        else {
-          var but = d.cible.x + d.cible.l * .3;
-          d.x += d.dir * vitesse * dt;
-          if ((d.dir === 1 && d.x >= but) || (d.dir === -1 && d.x <= but)) {
-            d.x = but; d.etat = 'ramasse'; d.pause = .36;
-            d.el.classList.add('att-arret');
-          }
-        }
-      } else if (d.etat === 'ramasse') {
-        d.pause -= dt;
-        if (d.pause <= 0) {
-          if (d.cible) { d.charges.push(d.cible); retirer(d.cible); d.cible = null; dessinerPrise(d); }
-          var suite = d.charges.length < MAX_PRISES ? plusProche(d.x) : null;
-          if (suite) {
-            suite.reserve = true; d.cible = suite;
-            d.dir = suite.x > d.x ? 1 : -1;
-            d.etat = 'aller';
-          } else {
-            d.etat = 'retour';
-            d.dir = d.x < W / 2 ? -1 : 1;
-          }
-          d.el.classList.remove('att-arret');
-        }
-      } else {
-        d.x += d.dir * vitesse * dt;
-        if (d.dir === 1 ? d.x > W + 150 : d.x < -150) {
-          d.el.remove(); chiens.splice(i, 1); continue;
-        }
+  function allerAuCran(i, sansSouffle) {
+    const r = CRANS[i];
+    E.cran = i;
+    poserAiguille(posCran(i) / 100);
+    if (!sansSouffle) gresiller();
+    if (!r.url) { radioArreter(); majEtat("Silence"); majCrans(); return; }
+    majEtat("Recherche de " + r.nom + "…");
+    majCrans();
+    radioDemarrer(r).then((ok) => {
+      if (ok) majEtat(r.nom);
+      else {
+        E.mortes[r.nom] = true;
+        majEtat(r.nom + " ne répond pas");
+        E.cran = 0; poserAiguille(posCran(0) / 100);
       }
-      d.el.style.transform = 'translate3d(' + Math.round(d.x) + 'px,0,0) scaleX(' + d.dir + ')';
+      majCrans();
+    });
+  }
+  function radioDemarrer(r) {
+    return new Promise((res) => {
+      radioArreter();
+      try {
+        E.audio = new Audio(r.url);
+        E.audio.volume = 0.35;
+        let tranche = false;
+        const echec = () => { if (!tranche) { tranche = true; radioArreter(); res(false); } };
+        E.audio.addEventListener("error", echec, { once: true });
+        E.audio.play().then(() => { if (!tranche) { tranche = true; E.radioNom = r.nom; res(true); } }).catch(echec);
+        setTimeout(echec, 6000);
+      } catch (e) { res(false); }
+    });
+  }
+  function radioArreter() {
+    if (E.audio) { try { E.audio.pause(); E.audio.src = ""; } catch (e) {} E.audio = null; }
+    E.radioNom = null;
+    const p = $("att-poste"); if (p) p.classList.remove("joue");
+  }
+
+  /* ================= STAND DE TIR =================
+     Il n'est plus DANS ce fichier. Il vit dans stand.js, chargé à la volée
+     depuis le même domaine, et se monte tout seul dans #att-coin.
+
+     Pourquoi séparé : le stand a demandé une dizaine de refontes graphiques
+     là où le reste du module était stable. Le garder ici, c'était rouvrir
+     attente.js — et risquer d'y casser quelque chose — à chaque essai de
+     dessin. Dans son fichier, on peut le reprendre sans jamais toucher au
+     voile, et le valider sur sa propre page de démonstration.
+
+     Le chargement est FACULTATIF : si stand.js ne répond pas, le voile
+     fonctionne exactement pareil, il n'y a simplement pas d'icône canard.
+     Un écran d'attente ne tombe pas parce que son jeu est absent. */
+  function chargerStand() {
+    if (window.ATT_STAND || !BASE) return;
+    var sc = document.createElement("script");
+    sc.src = BASE + "/stand.js?v=2";
+    sc.async = true;
+    sc.onload = function () {
+      try { window.ATT_STAND.monter("#att-coin"); } catch (e) {}
+    };
+    sc.onerror = function () { /* pas de stand, pas de drame */ };
+    document.head.appendChild(sc);
+  }
+  function standProgression(pct) {
+    if (window.ATT_STAND) { try { window.ATT_STAND.progression(pct / 100); } catch (e) {} }
+  }
+  function standArreter() {
+    if (window.ATT_STAND) { try { window.ATT_STAND.arreter(); } catch (e) {} }
+  }
+  function standRemiseAZero() {
+    if (window.ATT_STAND && window.ATT_STAND.remiseAZero) {
+      try { window.ATT_STAND.remiseAZero(); } catch (e) {}
     }
   }
 
-  function boucle() {
-    raf = requestAnimationFrame(boucle);
-    var t = performance.now();
-    var dt = Math.min((t - dernier) / 1000, .05);
-    dernier = t;
-    if (!ouvert) return;
-    horloge += dt;
+  /* ================= API PUBLIQUE ================= */
+  function demarrer(opts) {
+    opts = opts || {};
+    construire();
+    const v = $("att-voile");
+    if (E.on) return;
+    E.on = true;
+    v.classList.remove("fin");
+    $("att-echec").classList.remove("on");
+    $("att-titre").textContent = opts.titre || "Génération en cours";
+    $("att-sous").textContent = opts.sousTitre || "";
+    $("att-phase").textContent = "Préparation…";
+    $("att-compte").textContent = "";
+    $("att-barre-int").style.width = "0%";
+    poserTrame(opts.trame || null);
+    v.classList.add("on");
+    appliquer(0, null);
 
-    var W = ciel.clientWidth, H = ciel.clientHeight, solY = H - SOL;
-    var maxSim = Math.min(3, 1 + Math.floor(p * 3)), enVol = 0;
-    for (var i = 0; i < canards.length; i++) if (!canards[i].touche) enVol++;
-    prochainTir -= dt;
-    if (prochainTir <= 0 && enVol < maxSim) {
-      var rare = (horloge - dernierRare > 12) && Math.random() < (.04 + .05 * p);
-      if (rare) dernierRare = horloge;
-      lacher(rare);
-      prochainTir = lerp(3.5, .9, p) * alea(.85, 1.15);
-    }
+    // le stand repart replié, score à zéro : le score ne survit qu'à la
+    // génération en cours (décision du 01/09)
+    standRemiseAZero();
 
-    for (var j = canards.length - 1; j >= 0; j--) {
-      var c = canards[j];
-      if (c.gisant) continue;
-      if (!c.touche) {
-        c.x += c.dir * c.v * dt;
-        c.ph += dt * (6.28 / c.per);
-        c.y = c.base + Math.sin(c.ph) * c.amp;
-        if ((c.dir === 1 && c.x > W + c.l + 16) || (c.dir === -1 && c.x < -c.l - 16)) {
-          c.el.remove(); canards.splice(j, 1); continue;
-        }
-      } else {
-        c.vy += 780 * dt;
-        c.y += c.vy * dt;
-        c.x += c.dir * 22 * dt;
-        if (c.y >= solY - 9 * c.esp.ech) {
-          c.y = solY - 9 * c.esp.ech;
-          c.el.innerHTML = canardMortSVG(c.esp);   // ailes closes, tête pendante
-          c.l = 22 * c.esp.ech;
-          c.gisant = true;
-          gisants.push(c);
-          while (gisants.length > 8) {   /* le chien ne suit plus : on désencombre */
-            var vieux = gisants.shift();
-            vieux.el.remove();
-            var k = canards.indexOf(vieux); if (k >= 0) canards.splice(k, 1);
-          }
-        }
-      }
-      poser(c);
-    }
-    majChiens(dt);
+    // l'aiguille repart au silence à chaque attente : aucune station retenue
+    E.cran = 0; E.mortes = {};
+    radioArreter(); majEtat("Silence"); majCrans();
+    requestAnimationFrame(() => { poserAiguille(posCran(0) / 100); ajuster(); });
+
+    E.source = opts.source || null;
+    clearInterval(E.minuterie);
+    if (E.source) E.minuterie = setInterval(lireSource, 400);
+
+    chargerActus(); chargerClassements(); chargerCulturel(); chargerCompteurs();
+    clearInterval(E.actusMinuterie);
+    E.actusMinuterie = setInterval(chargerActus, 5 * 60 * 1000);
   }
 
-  /* ============================================================
-     7. API
-     ============================================================ */
-  window.ATT_STAND = {
-    monter: function (cible) {
-      hote = (typeof cible === 'string' ? document.querySelector(cible) : cible)
-        || document.getElementById('att-coin');
-      if (!hote) { console.warn('[stand] hôte introuvable'); return; }
-      if (getComputedStyle(hote).position === 'static') hote.style.position = 'relative';
-      if (!racine) construire();
-      return this;
-    },
-    progression: function (v) { p = Math.max(0, Math.min(1, Number(v) || 0)); return this; },
-    arreter: function () {
-      ouvert = false;
-      if (raf) { cancelAnimationFrame(raf); raf = null; }
-      if (racine) racine.setAttribute('data-ouvert', '0');
-      return this;
-    },
-    demonter: function () {
-      this.arreter();
-      canards.length = 0; gisants.length = 0;
-      chiens.forEach(function (d) { d.el.remove(); });
-      chiens.length = 0;
-      if (racine) { racine.remove(); racine = null; }
-      score = 0;
-      return this;
-    },
-    /* Remise à zéro entre deux générations : le score ne survit pas au
-       dossier terminé (décision du 01/09). On vide aussi la scène, sinon les
-       canards de la génération précédente réapparaîtraient au dépliage. */
-    remiseAZero: function () {
-      this.arreter();
-      canards.forEach(function (c) { c.el.remove(); });
-      chiens.forEach(function (d) { d.el.remove(); });
-      canards.length = 0; gisants.length = 0; chiens.length = 0;
-      score = 0; horloge = 0; dernierRare = -1e9;
-      if (elScore) elScore.innerHTML = '0<span>points</span>';
-      return this;
-    },
-    score: function () { return score; },
-    version: '2.2-pixel'
-  };
+  function progression(pct, phase) { if (E.on) appliquer(pct, phase || null); }
+
+  function terminer() {
+    if (!E.on) return;
+    const v = $("att-voile");
+    appliquer(100, "Terminé");
+    v.classList.add("fin");
+    gresillerFin();
+    // bascule immédiate sur le document même si une partie est en cours, sans
+    // écran de score ni confirmation (décision du 01/09)
+    standArreter();
+    radioArreter(); E.cran = 0; majEtat("Silence"); majCrans();  // la radio se coupe TOUJOURS à la fin
+    clearInterval(E.minuterie); clearInterval(E.actusMinuterie); clearInterval(E.compteursMinuterie);
+    E.on = false;
+    setTimeout(() => v.classList.remove("on"), 900);
+  }
+
+  /* Échec : un bandeau PAR-DESSUS le contenu qui continue de tourner — pas
+     d'écran d'erreur plein (décision du 29/08). La radio continue : le
+     traitement derrière n'est pas forcément mort, et l'onglet doit garder
+     son exemption d'étranglement. */
+  function echec(message) {
+    construire();
+    $("att-echec-msg").textContent = "La génération a rencontré un problème — " +
+      (message || "voir l'outil derrière cet écran") + ". Le contenu continue de tourner.";
+    $("att-echec").classList.add("on");
+  }
+
+  window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster();  } });
+
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "3.0-stand-separe" };
 })();
