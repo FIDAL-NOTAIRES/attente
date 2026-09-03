@@ -316,17 +316,27 @@
   var CSS = ''
     + '.att-stand{position:absolute;inset:auto auto 12px 12px;z-index:40;'
       + 'font-family:"Segoe UI",system-ui,sans-serif}'
-    + '.att-stand-icone{padding:4px 6px;border-radius:10px;background:' + C.nuit + ';'
-      + 'border:1.5px solid ' + C.cyan + ';cursor:pointer;line-height:0;'
-      + 'box-shadow:0 4px 14px rgba(0,0,0,.35)}'
-    + '.att-stand-icone svg{display:block;image-rendering:pixelated}'
+    /* ⚠ L'icône ne bouge PAS et ne rétrécit PAS à l'ouverture. Réduite et
+       glissée sous la carte, elle devenait introuvable — et c'est le seul
+       moyen de replier le stand. Elle porte donc aussi son intitulé. */
+    + '.att-stand-icone{display:flex;align-items:center;gap:8px;padding:5px 11px 5px 7px;'
+      + 'border-radius:10px;background:' + C.nuit + ';border:1.5px solid ' + C.cyan + ';'
+      + 'cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);'
+      + 'font:600 11.5px/1 "Segoe UI",sans-serif;letter-spacing:.6px;color:' + C.cyan + '}'
+    + '.att-stand-icone svg{display:block;image-rendering:pixelated;flex:0 0 auto}'
+    + '.att-stand-icone:hover{border-color:' + C.jauneForme + '}'
     + '.att-stand-icone:focus-visible{outline:2px solid ' + C.jauneForme + ';outline-offset:2px}'
     + '.att-stand[data-ouvert="1"] .att-stand-icone{border-color:' + C.jauneForme + ';'
-      + 'position:absolute;bottom:0;left:0;transform:translate(-8px,8px) scale(.7)}'
+      + 'color:' + C.jauneForme + '}'
 
-    + '.att-stand-carte{position:absolute;bottom:0;left:0;width:min(568px,calc(100vw - 32px));'
+    /* ⚠ position FIXE, pas absolue. Ancrée sur l'icône — donc dans le coin de
+       la trame —, la carte grandissait vers le haut et recouvrait la trame,
+       qui doit rester visible comme jauge de progression. Détachée, elle se
+       place dans la bande libre entre les cartes et le cadran de radio. */
+    + '.att-stand-carte{position:fixed;left:50%;transform:translateX(-50%);bottom:118px;'
+      + 'z-index:60;width:min(568px,calc(100vw - 32px));'
       + 'border-radius:12px;overflow:hidden;background:' + C.nuit + ';'
-      + 'border:1.5px solid ' + C.canard + ';box-shadow:0 18px 44px rgba(0,0,0,.5);display:none}'
+      + 'border:1.5px solid ' + C.canard + ';box-shadow:0 18px 44px rgba(0,0,0,.55);display:none}'
     + '.att-stand[data-ouvert="1"] .att-stand-carte{display:block}'
     + '.att-stand-tete{display:flex;align-items:baseline;justify-content:space-between;'
       + 'gap:12px;padding:7px 12px 5px;border-bottom:1px solid rgba(109,213,220,.25)}'
@@ -424,7 +434,7 @@
       +     puce('sarcelle') + puce('mandarin') + '</div>'
       + '</div>'
       + '<button class="att-stand-icone" type="button" aria-label="Ouvrir le stand de tir">'
-      +   canardFixe(ESPECES.colvert, 2) + '</button>';
+      +   canardFixe(ESPECES.colvert, 2) + '<span>Stand de tir</span></button>';
 
     ciel = racine.querySelector('.att-ciel');
     elScore = racine.querySelector('.att-stand-score');
@@ -439,6 +449,9 @@
   function deplier() {
     ouvert = true;
     racine.setAttribute('data-ouvert', '1');
+    var b = racine.querySelector('.att-stand-icone');
+    b.querySelector('span').textContent = 'Replier';
+    b.setAttribute('aria-label', 'Replier le stand de tir');
     dernier = performance.now();
     prochainTir = 0.8;
     if (!raf) boucle();
@@ -448,6 +461,9 @@
        partie, on ne la remet pas à zéro */
     ouvert = false;
     racine.setAttribute('data-ouvert', '0');
+    var b = racine.querySelector('.att-stand-icone');
+    b.querySelector('span').textContent = 'Stand de tir';
+    b.setAttribute('aria-label', 'Ouvrir le stand de tir');
     if (raf) { cancelAnimationFrame(raf); raf = null; }
   }
 
@@ -662,7 +678,11 @@
     arreter: function () {
       ouvert = false;
       if (raf) { cancelAnimationFrame(raf); raf = null; }
-      if (racine) racine.setAttribute('data-ouvert', '0');
+      if (racine) {
+        racine.setAttribute('data-ouvert', '0');
+        var b = racine.querySelector('.att-stand-icone');
+        if (b && b.querySelector('span')) b.querySelector('span').textContent = 'Stand de tir';
+      }
       return this;
     },
     demonter: function () {
@@ -687,6 +707,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '2.2-pixel'
+    version: '2.3-pixel'
   };
 })();
