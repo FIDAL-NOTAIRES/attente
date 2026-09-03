@@ -54,6 +54,12 @@
     }
     return r;
   }
+  /* ⚠ UNE SEULE TAILLE DE PIXEL dans toute la scène. Le décor et les sprites
+     doivent partager la même grille, sinon l'oiseau a un grain plus fin que le
+     paysage et l'illusion tombe. Ici : 3 pixels d'écran par pixel de sprite,
+     donc un décor de 189 x 99 pour un ciel de 568 x 296, et TOUTES les espèces
+     à l'échelle 3 — en pixel art on ne réduit pas le pixel pour faire un
+     canard plus petit, on lui dessine un sprite plus petit. */
   function svgPx(W, H, corps, ech) {
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + (W * ech)
       + '" height="' + (H * ech) + '" shape-rendering="crispEdges"'
@@ -153,7 +159,7 @@
       teinte: '#A8531F', spatule: true,
       pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#7E8F98', b:'#4A585F',
              B:'#A8531F', M:'#F0EADA', G:'#14573A', Y:'#2B2F35' } },
-    sarcelle: { nom: 'Sarcelle', points: 3, ech: 2, vitesse: 1.45, poids: 20,
+    sarcelle: { nom: 'Sarcelle', points: 3, ech: 3, vitesse: 1.45, poids: 20,
       teinte: '#7A3B22', spatule: false,
       pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', a:'#98988F', b:'#63635C',
              B:'#B9BCB8', M:'#E6DCC4', G:'#7A3B22', Y:'#2A2E33' } },
@@ -368,7 +374,7 @@
       + 'animation:att-gain .8s steps(8,end) forwards}'
     + '@keyframes att-gain{from{transform:translateY(0);opacity:1}to{transform:translateY(-26px);opacity:0}}'
 
-    + '.att-bareme{display:flex;gap:14px;flex-wrap:wrap;padding:6px 12px 7px;'
+    + '.att-bareme{display:flex;gap:14px;flex-wrap:wrap;padding:6px 12px 7px 58px;'
       + 'border-top:1px solid rgba(109,213,220,.25);font-size:11.5px;color:#BFD4D7}'
     + '.att-bareme b{color:#EAF2F3;font-weight:600}'
     + '.att-bareme i{width:9px;height:9px;display:inline-block;margin-right:5px}'
@@ -411,7 +417,7 @@
       +   '<div class="att-stand-tete"><h4>Stand de tir</h4>'
       +     '<div class="att-stand-score">0<span>points</span></div></div>'
       +   '<div class="att-ciel">'
-      +     '<svg class="att-fond" viewBox="0 0 142 74" preserveAspectRatio="none"'
+      +     '<svg class="att-fond" viewBox="0 0 189 99" preserveAspectRatio="none"'
       +       ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
       +   '</div>'
       +   '<div class="att-bareme">' + puce('colvert') + puce('souchet')
@@ -422,7 +428,7 @@
 
     ciel = racine.querySelector('.att-ciel');
     elScore = racine.querySelector('.att-stand-score');
-    ciel.querySelector('.att-fond').innerHTML = decor(142, 74);
+    ciel.querySelector('.att-fond').innerHTML = decor(189, 99);
 
     racine.querySelector('.att-stand-icone')
       .addEventListener('click', function () { ouvert ? replier() : deplier(); });
@@ -669,6 +675,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '2.0-pixel'
+    version: '2.1-pixel'
   };
 })();
