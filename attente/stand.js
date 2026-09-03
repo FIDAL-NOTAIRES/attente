@@ -1,5 +1,5 @@
 /* ============================================================
-   ATTENTE — stand de tir  (v2.0, pixel art)
+   ATTENTE — stand de tir  (v4.0, pixel art façon Duck Hunt)
    Module autonome, zéro dépendance, aucune image externe.
    API :
      ATT_STAND.monter(hote) / progression(0..1) / arreter() / demonter()
@@ -76,113 +76,115 @@
   /* Corps : poitrail rond à l'avant, queue effilée à l'arrière, tête et bec
      agrandis, et le collier blanc du colvert entre poitrail et tête. 24 x 9,
      posé à l'ordonnée 9 du sprite — les rangs 0 à 8 sont réservés à l'aile. */
+  /* Corps : silhouette très CONTRASTÉE, à la Duck Hunt — corps sombre ou
+     saturé, ventre blanc, tête verte, bec orange. Mes canards gris se
+     perdaient sur le ciel ; ici chaque espèce se reconnaît d'un coup d'œil.
+     26 x 9, posé à l'ordonnée 9 — les rangs 0 à 8 sont pour l'aile. */
   var CORPS = [
-    '.........KKKKKK.........',
-    '......KKKBBBBBBKKK......',
-    '....KKBBBBBBBBBBBBKK....',
-    '..KKWBBBBBBBBBBMMWGGKK..',
-    '.KWWWBBBBBBBBBBMWGGGGGK.',
-    '.KWWKKbBBBBBBBBMWGNKGGKY',
-    '..KKKKbbbbbbbbbbKGGGGGKY',
-    '.......KKKKKKKKKKGGGGKYY',
-    '.................KKKKKK.'
+    '.........KKKKKKK..........',
+    '......KKKBBBBBBBKKK.......',
+    '....KKBBBBBBBBBBBTTTKK....',
+    '..KKABBBBBBBBBBBTTTTTTK...',
+    '.KAAABBBBBBBBBBBTTNKTTKYYY',
+    '.KAAKVVVVVVVVVVBTTTTTTKYYY',
+    '..KKKVVVVVVVVVVKTTTTTKYYY.',
+    '.....KKKKKKKKKKKKTTTKK....',
+    '.................KKK......'
   ];
 
-  /* Aile coudée, avec un bord d'attaque sombre (D), un dessus (A) et une
-     ombre (a). Les trois poses sont RATTACHÉES au corps à l'épaule : au
-     premier jet, les poses mi-course et basse flottaient à côté de l'oiseau. */
+  /* Aile GRANDE et blanche, comme dans le jeu d'origine, avec son ombre (o).
+     Les trois poses sont rattachées au corps à l'épaule. */
   var AILE_HAUTE = [
-    '..........KKK...........',
-    '.........KDAK...........',
-    '.........KDAK...........',
-    '........KDAAK...........',
-    '........KDAaK...........',
-    '.......KDAAaK...........',
-    '.......KDAaaK...........',
-    '......KKDAaK............',
-    '.....KKDAaK.............'
+    '.......KKKK...............',
+    '......KAAAK...............',
+    '......KAAAK...............',
+    '.....KAAAAK...............',
+    '.....KAAAoK...............',
+    '....KAAAAoK...............',
+    '....KAAAooK...............',
+    '...KKAAAoK................',
+    '..KKAAAAoK................'
   ];
 
   var AILE_MI = [
-    '........................',
-    '........................',
-    '........................',
-    '......KKKK..............',
-    '.....KDAAAK.............',
-    '.....KDAAAaK............',
-    '......KDAAAaK...........',
-    '.......KDAAAaK..........',
-    '........KKDAAaK.........'
+    '..........................',
+    '..........................',
+    '...KKKK...................',
+    '..KAAAAK..................',
+    '..KAAAAAK.................',
+    '..KAAAoAAK................',
+    '...KAAAoAAK...............',
+    '....KKAAAoAK..............',
+    '......KKAAAoK.............'
   ];
 
   /* pose basse : rien au-dessus du corps, tout passe dessous */
   var AILE_BASSE = [
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................',
-    '........................'
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................',
+    '..........................'
   ];
 
   var AILE_BASSE_BAS = [
-    '........KKDAAaK.........',
-    '.......KDAAAaK..........',
-    '......KDAAAaK...........',
-    '.....KDAAAaK............',
-    '.....KDAAaK.............',
-    '......KKKK..............'
+    '.......KKAAAoK............',
+    '......KAAAAoK.............',
+    '.....KAAAAoK..............',
+    '....KAAAAoK...............',
+    '....KAAAoK................',
+    '.....KKKK.................'
   ];
 
-  /* Canard MORT, au sol : ailes closes le long des flancs, œil clos. Il
-     reprend le corps du canard en vol, donc il reste reconnaissable. */
+  /* Canard MORT : mêmes couleurs, ailes closes le long des flancs. */
   var MORT = [
-    '.........KKKKKK.........',
-    '......KKKBBBBBBKKK......',
-    '....KKBBBBAAAAAABBKK....',
-    '..KKWBBBAAAAAAABMWGGKK..',
-    '.KWWWBBBAAAAAAAMWGGGGGK.',
-    '.KWWKKbBAAAAAAAMWGKKGGKY',
-    '..KKKKbbbbbbbbbbKGGGGGKY',
-    '.......KKKKKKKKKKGGGGKYY',
-    '.................KKKKKK.'
+    '.........KKKKKKK..........',
+    '......KKKBBBBBBBKKK.......',
+    '....KKBBBAAAAABBBTTTKK....',
+    '..KKABBAAAAAAABBTTTTTTK...',
+    '.KAAABBAAAAAAABTTKKTTKYYY.',
+    '.KAAKVVVAAAAAVVBTTTTTKYYY.',
+    '..KKKVVVVVVVVVVKTTTTKYYY..',
+    '.....KKKKKKKKKKKKTTKK.....',
+    '.................KK.......'
   ];
 
   var ESPECES = {
     colvert: { nom: 'Colvert', points: 1, ech: 3, vitesse: 1.00, poids: 50,
       teinte: '#1D7A3E',
-      pal: { K:'#181818', W:'#F2F2EE', N:'#FFFFFF', D:'#5A616A', A:'#A8AEB6', a:'#7B828A',
-             b:'#5E6874', B:'#A6ADB5', M:'#7A4526', G:'#1D7A3E', Y:'#E8A62C' } },
+      pal: { K:'#000000', B:'#181818', V:'#FCFCFC', A:'#FCFCFC', o:'#BCBCBC',
+             T:'#00A844', N:'#FCFCFC', Y:'#FC9838' } },
     souchet: { nom: 'Souchet', points: 2, ech: 3, vitesse: 1.18, poids: 30,
       teinte: '#A8531F',
-      pal: { K:'#181818', W:'#F2F2EE', N:'#FFFFFF', D:'#46545B', A:'#9FB2B8', a:'#6C7F86',
-             b:'#4A585F', B:'#A8531F', M:'#F0EADA', G:'#14573A', Y:'#2B2F35' } },
+      pal: { K:'#000000', B:'#0058F8', V:'#FCFCFC', A:'#FCFCFC', o:'#A4C8FC',
+             T:'#00A844', N:'#FCFCFC', Y:'#FC9838' } },
     sarcelle: { nom: 'Sarcelle', points: 3, ech: 3, vitesse: 1.45, poids: 20,
       teinte: '#7A3B22',
-      pal: { K:'#181818', W:'#F2F2EE', N:'#FFFFFF', D:'#5C615B', A:'#A9AEA8', a:'#7B807A',
-             b:'#63635C', B:'#BEC2BE', M:'#E6DCC4', G:'#7A3B22', Y:'#2A2E33' } },
+      pal: { K:'#000000', B:'#A81000', V:'#FCFCFC', A:'#FCFCFC', o:'#F0A0A0',
+             T:'#503000', N:'#FCFCFC', Y:'#FC9838' } },
     mandarin: { nom: 'Mandarin', points: 5, ech: 3, vitesse: 3.40, poids: 0,
       teinte: '#D9772B',
-      pal: { K:'#181818', W:'#F0A24E', N:'#FFFFFF', D:'#3E3950', A:'#8A7EA0', a:'#5A5470',
-             b:'#4A4458', B:'#D8B96F', M:'#4A2E5C', G:'#1B5E3A', Y:'#C6362F' } }
+      pal: { K:'#000000', B:'#F87800', V:'#FCFCFC', A:'#FCE0A0', o:'#D89020',
+             T:'#00A844', N:'#FCFCFC', Y:'#F83800' } }
   };
 
   function canardSVG(e) {
     var corps = runs(CORPS, e.pal, 0, 9);
-    return svgPx(24, 24, ''
+    return svgPx(26, 24, ''
       + '<g class="att-f0">' + runs(AILE_HAUTE, e.pal) + corps + '</g>'
       + '<g class="att-f1">' + runs(AILE_MI, e.pal) + corps + '</g>'
       + '<g class="att-f2">' + runs(AILE_BASSE, e.pal) + corps
         + runs(AILE_BASSE_BAS, e.pal, 0, 18) + '</g>', e.ech);
   }
   function canardFixe(e, ech) {
-    return svgPx(24, 24, runs(AILE_HAUTE, e.pal) + runs(CORPS, e.pal, 0, 9), ech || e.ech);
+    return svgPx(26, 24, runs(AILE_HAUTE, e.pal) + runs(CORPS, e.pal, 0, 9), ech || e.ech);
   }
   function canardMortSVG(e, ech) {
-    return svgPx(24, 9, runs(MORT, e.pal), ech || e.ech);
+    return svgPx(26, 9, runs(MORT, e.pal), ech || e.ech);
   }
 
   /* ============================================================
@@ -190,50 +192,48 @@
         Deux poses de trot, alternées par la même mécanique
         d'opacité que les ailes. Gueule autour de (24,13).
      ============================================================ */
-  var PAL_CHIEN = { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', F:'#8A5A2E', f:'#5E3A18' };
+  /* Chien de Duck Hunt : orange, oreille noire tombante, gros œil, museau
+     blanc à truffe noire, queue dressée. 32 x 22, sol à y=21, gueule vers
+     (28,12). Mon springer réaliste jurait avec le reste de la scène. */
+  var PAL_CHIEN = { K:'#000000', O:'#E45C10', o:'#A83800', W:'#FCFCFC' };
   var CHIEN_HAUT = [
-    '..................................',
-    '.KK...............................',
-    'KWWK..............................',
-    'KWWK..............KKKKKK..........',
-    '.KWWK............KWWWWWWKK........',
-    '..KWWK..........KWFFFFFWWWK.......',
-    '...KWWKKKKKKKKKKKWFFFFFFFWWK......',
-    '....KWWWWWWWWWWWWWFFNKFFFFWK......',
-    '....KWWWWWWWWWWWWWFFKKFFFFWWKK....',
-    '....KWWWWWWWWWWWWWFFFFFFFWWWWWKK..',
-    '....KWWWWWWWWWWWWWFFFFFFWWWWWWKK..',
-    '....KWWWWWWWWWWWWWWFFFFFWWWKKKK...',
-    '.....KWWWWWWWWWWWWWWFFFFWWKK......',
-    '.....KWWWWWWWWWWWWWWWffFWWK.......',
-    '.....KKWWWWWWWWWWWWWKffFWK........',
-    '......KKWWWWKKKKKWWWKffFK.........'
+    '................................',
+    '..KK............................',
+    '.KOOK..........KKKKK............',
+    '.KOOK........KKOOOOOKK..........',
+    '..KOOK......KOOOOOOOOOKK........',
+    '..KOOKKKKKKKKOOOOOOOOOOOK.......',
+    '..KOOOOOOOOOOOOOOOOOOOOOOK......',
+    '..KOOOOOOOOOOOKKKKOOOOOOOOK.....',
+    '..KooOOOOOOOOOKKKKOWKOOOOOOK....',
+    '..KooOOOOOOOOOKKKKOWKOOOOOOOK...',
+    '..KooOOOOOOOOOKKKKOOWWWWWWWWKK..',
+    '...KooOOOOOOOOKKKKOOWWWWWWWKKKK.',
+    '...KKooOOOOOOOKKKKOOWWWWWWWWWKK.',
+    '....KKooooOOOOKKKKKOWWWWWWWWKK..',
+    '......KKKKooooKKKKKKWWWWWWWKK...',
+    '.........KKKKKKKKKKKWWWWKK......',
+    '.........KWWK...KOOK.KKK........'
   ];
   var PATTES_A = [
-    '.......KffWK....KWfFK.KffWK.......',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '.......KffWK....KWfFK.KffK........',
-    '......KfffWK...KWffFK.KfffK.......',
-    '......KKKKKK...KKKKKK.KKKKK.......'
+    '.........KWWK...KOOK............',
+    '.........KWWK...KOOK............',
+    '.........KWWK...KOOK............',
+    '........KWWWK..KOOOK............',
+    '........KKKKK..KKKKK............'
   ];
   var PATTES_B = [
-    '......KWfFK.....KffWK..KffWK......',
-    '......KWfFK.....KffWK..KffK.......',
-    '.......KWfFK....KffWK.KffK........',
-    '.......KWfFK....KffWK.KffK........',
-    '........KWfFK...KffWK.KffK........',
-    '........KWfFK..KffWK..KffK........',
-    '.......KWWfFK..KfffWK.KfffK.......',
-    '.......KKKKKK..KKKKKK.KKKKK.......'
+    '........KWWK....KOOK............',
+    '.......KWWK......KOOK...........',
+    '.......KWWK.......KOOK..........',
+    '......KWWWK.......KOOOK.........',
+    '......KKKKK.......KKKKK.........'
   ];
   function chienSVG(ech) {
     var haut = runs(CHIEN_HAUT, PAL_CHIEN);
-    return svgPx(34, 24, ''
-      + '<g class="att-f0">' + haut + runs(PATTES_A, PAL_CHIEN, 0, 16) + '</g>'
-      + '<g class="att-f1">' + haut + runs(PATTES_B, PAL_CHIEN, 0, 16) + '</g>'
+    return svgPx(32, 22, ''
+      + '<g class="att-f0">' + haut + runs(PATTES_A, PAL_CHIEN, 0, 17) + '</g>'
+      + '<g class="att-f1">' + haut + runs(PATTES_B, PAL_CHIEN, 0, 17) + '</g>'
       + '<g class="att-prise"></g>', ech);
   }
 
@@ -242,71 +242,63 @@
         pour un ciel entier ferait mille lignes pour un résultat
         qu'on ne peut plus retoucher.
      ============================================================ */
-  var ARBRE = [
-    '.....KKKK.......',
-    '...KKVVVVKK.....',
-    '..KVVVVVVVVK....',
-    '.KVVVVVVVVVVK...',
-    '.KVVVVVVVVVVK...',
-    '..KVVVVVVVVK.KK.',
-    '...KKVVVVKKKVVK.',
-    '.....KTTK.KVVVK.',
-    '.KK..KTTK.KVVVK.',
-    'KVVK.KTTK..KVK..',
-    'KVVVKKTTKKKKKK..',
-    '.KVVVKTTTTVVVK..',
-    '..KKKKTTKKKKK...',
-    '.....KTTK.......',
-    '.....KTTK.......',
-    '.....KTTK.......',
-    '....KTTTTK......',
-    '....KTTTTK......',
-    '...KTTTTTTK.....',
-    '...KTTTTTTK.....',
-    '..KTTTTTTTTK....',
-    '..KKKKKKKKKK....'
-  ];
-  var PAL_ARBRE = { K:'#123024', V:'#2E7A4A', T:'#6B4423' };
+  /* Décor de Duck Hunt : ciel bleu UNI (ni dégradé ni nuages ni plan d'eau),
+     large bande d'herbe vert vif à touffes dentelées, un gros arbre au tronc
+     rouge-brun coiffé de bouquets ronds, et quelques buissons. Palette
+     relevée sur des captures du jeu.
 
-  function decor(W, H) {
-    var D = { ciel1:'#5FA8D6', ciel2:'#7FC0E4', nuage:'#F2F7FA',
-      bois:'#1E4B3A', bois2:'#2F6650', herbe:'#4E8C3A', herbe2:'#3A6B2A',
-      eau:'#3E7FA8', eau2:'#5B9BC0' };
-    function r(x, y, w, h, f) {
-      return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h
-        + '" fill="' + f + '"/>';
+     Les ronds sont des pastilles de pixels — une ellipse rendue en rangées de
+     rectangles — et non des cercles SVG : sur une grille, un cercle lissé
+     trahit immédiatement. */
+  function rect(x,y,w,h,f){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"/>'; }
+  // pastille pixel : une ellipse en rangees de rectangles -> le rond chunky de la NES
+  function blob(cx,cy,rx,ry,f){
+    var s='';
+    for(var dy=-ry;dy<=ry;dy++){
+      var w=Math.round(rx*Math.sqrt(Math.max(0,1-(dy*dy)/(ry*ry))));
+      if(w>0) s+=rect(cx-w,cy+dy,w*2,1,f);
     }
-    /* Conifère : un triangle bâti en rectangles empilés de largeur croissante.
-       Au premier jet la lisière n'était qu'une rangée de rectangles verticaux —
-       ça faisait une haie de béton, pas une forêt. */
-    function sapin(x, sol, h, f) {
-      var o = '';
-      for (var i = 0; i < h; i++) {
-        var w = 1 + Math.floor(i * 4 / h);
-        o += r(x - Math.floor(w / 2), sol - h + i, w, 1, f);
-      }
-      return o;
+    return s;
+  }
+  
+  /* ---------- palette NES, relevee sur la capture ---------- */
+  var PAL_DEC = {
+    ciel:'#6BC0F0',
+    herbe:'#58D858', herbeF:'#00A844', herbeO:'#007828',
+    tronc:'#B53120', troncO:'#7C1C10',
+    feuille:'#58D858', feuilleF:'#00A844',
+    buisson:'#00A844', buissonO:'#007828'
+  };
+  
+  function decor(W,H){
+    var s = rect(0,0,W,H,PAL_DEC.ciel);
+    var yH = H-26;                              // large bande d'herbe, pas un lisere
+    s += rect(0,yH,W,H-yH,PAL_DEC.herbe);
+    s += rect(0,H-6,W,6,PAL_DEC.herbeF);
+    // touffes dentelees sur le bord haut
+    for(var x=0;x<W;x+=2){
+      var h=2+((x*7)%5);
+      s += rect(x,yH-h,1,h,PAL_DEC.herbe) + rect(x+1,yH-Math.max(1,h-2),1,Math.max(1,h-2),PAL_DEC.herbeF);
     }
-    var s = r(0, 0, W, H, D.ciel1);
-    s += r(0, Math.round(H * .24), W, Math.round(H * .36), D.ciel2);
-    var nu = [[8,5,14],[13,8,8],[46,4,16],[53,7,9],[86,6,13],[92,9,7],[112,4,12]];
-    for (var i = 0; i < nu.length; i++) s += r(nu[i][0], nu[i][1], nu[i][2], 3, D.nuage);
-
-    var yBois = Math.round(H * .56);
-    for (var x = 0; x < W + 4; x += 4) s += sapin(x, yBois, 5 + ((x * 7) % 4), D.bois2);
-    for (var x2 = 2; x2 < W + 6; x2 += 6) s += sapin(x2, yBois + 2, 7 + ((x2 * 11) % 5), D.bois);
-
-    var yEau = yBois + 2;
-    s += r(0, yEau, W, H - yEau, D.eau);
-    for (var k = 0; k < 10; k++) {
-      s += r((k * 19) % W, yEau + 2 + k, 6 + (k % 4) * 5, 1, D.eau2);
+    // touffes foncees semees dans la bande
+    for(var t=0;t<26;t++){
+      var tx=(t*23)%W, ty=yH+3+((t*11)%14);
+      s += rect(tx,ty,2,1,PAL_DEC.herbeF) + rect(tx+1,ty-1,1,1,PAL_DEC.herbeF);
     }
-    var yHerbe = H - 7;
-    s += r(0, yHerbe, W, 7, D.herbe2);
-    for (var g = 0; g < W; g += 2) s += r(g, yHerbe - (3 + ((g * 5) % 5)), 1, 3 + ((g * 5) % 5), D.herbe);
-
-    /* l'arbre part à DROITE : à gauche, le chien entre en scène et le masquait */
-    s += runs(ARBRE, PAL_ARBRE, W - 20, yHerbe - 22);
+    // le gros arbre : tronc rouge-brun, branches, bouquets ronds
+    var ax=Math.round(W*0.30), sol=yH+3;
+    s += rect(ax-3,sol-40,6,40,PAL_DEC.tronc) + rect(ax+2,sol-40,2,40,PAL_DEC.troncO);
+    s += rect(ax-8,sol-31,6,3,PAL_DEC.tronc) + rect(ax+3,sol-35,7,3,PAL_DEC.tronc);
+    s += blob(ax,   sol-48, 15, 9, PAL_DEC.feuilleF);
+    s += blob(ax-12,sol-40, 10, 7, PAL_DEC.feuilleF);
+    s += blob(ax+13,sol-42, 11, 7, PAL_DEC.feuilleF);
+    s += blob(ax-2, sol-52, 12, 7, PAL_DEC.feuille);
+    s += blob(ax-13,sol-42,  8, 5, PAL_DEC.feuille);
+    s += blob(ax+12,sol-44,  9, 5, PAL_DEC.feuille);
+    // buissons poses sur l'herbe
+    [[Math.round(W*0.62),9,5],[Math.round(W*0.70),6,4],[Math.round(W*0.88),8,5]].forEach(function(b){
+      s += blob(b[0], yH+1, b[1], b[2], PAL_DEC.buisson) + blob(b[0]-1, yH, b[1]-2, b[2]-2, PAL_DEC.herbeF);
+    });
     return s;
   }
 
@@ -413,7 +405,7 @@
   var canards = [], gisants = [], chiens = [];
   var score = 0, p = 0, ouvert = false, raf = null;
   var dernier = 0, prochainTir = 0, dernierRare = -1e9, horloge = 0;
-  var MAX_CHIENS = 2, MAX_PRISES = 3, SOL = 26;   // hauteur de la berge, en px
+  var MAX_CHIENS = 2, MAX_PRISES = 3, SOL = 70;   // hauteur de la bande d'herbe, en px
 
   function lerp(a, b, t) { return a + (b - a) * t; }
   function alea(a, b) { return a + Math.random() * (b - a); }
@@ -500,7 +492,7 @@
     }
     var e = ESPECES[cle];
     var dir = Math.random() < .62 ? 1 : -1;
-    var l = 24 * e.ech, h = 24 * e.ech;
+    var l = 26 * e.ech, h = 24 * e.ech;
     var base = alea(H * .05, Math.max(0, H - SOL - h));
     var el = document.createElement('div');
     el.className = 'att-canard';
@@ -579,8 +571,8 @@
     if (!d.charges.length) { d.prise.innerHTML = ''; return; }
     var h = '';
     for (var i = 0; i < d.charges.length; i++) {
-      h += '<g transform="translate(' + (21 + i * 2) + ',' + (12 + i * 4)
-        + ') scale(.55)">' + runs(MORT, d.charges[i].esp.pal) + '</g>';
+      h += '<g transform="translate(' + (22 + i * 2) + ',' + (9 + i * 3)
+        + ') scale(.5)">' + runs(MORT, d.charges[i].esp.pal) + '</g>';
     }
     d.prise.innerHTML = h;
   }
@@ -667,7 +659,7 @@
         if (c.y >= solY - 9 * c.esp.ech) {
           c.y = solY - 9 * c.esp.ech;
           c.el.innerHTML = canardMortSVG(c.esp);   // ailes closes, tête pendante
-          c.l = 24 * c.esp.ech;
+          c.l = 26 * c.esp.ech;
           c.gisant = true;
           gisants.push(c);
           while (gisants.length > 8) {   /* le chien ne suit plus : on désencombre */
@@ -729,6 +721,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '3.0-pixel'
+    version: '4.0-duck-hunt'
   };
 })();
