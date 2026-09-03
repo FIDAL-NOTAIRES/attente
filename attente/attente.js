@@ -1042,7 +1042,7 @@
        pendant cinq versions : le navigateur gardait sa copie et exécutait un
        ancien stand alors que le dépôt était à jour — deux heures perdues à
        chercher un bug de mise en page qui n'existait plus. */
-    sc.src = BASE + "/stand.js?v=11";
+    sc.src = BASE + "/stand.js?v=12";
     sc.async = true;
     sc.onload = function () {
       try { window.ATT_STAND.monter("#att-coin"); } catch (e) {}
@@ -1128,5 +1128,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster();  } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "3.6" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "3.7" };
 })();
