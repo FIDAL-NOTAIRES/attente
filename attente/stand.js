@@ -70,122 +70,119 @@
      2. CANARDS — 22 x 20, vol vers la DROITE.
         Géométrie commune, palette par espèce : c'est ainsi que
         procédait Duck Hunt, qui n'avait qu'un canard et trois jeux
-        de couleurs. Le souchet a en plus son bec en spatule.
+        de couleurs. Le bec du souchet est noir, celui du colvert jaune :
+        à trois pixels par unité, la forme du bec ne se lirait pas, la couleur si.
      ============================================================ */
+  /* Corps : poitrail rond à l'avant, queue effilée à l'arrière, tête et bec
+     agrandis, et le collier blanc du colvert entre poitrail et tête. 24 x 9,
+     posé à l'ordonnée 9 du sprite — les rangs 0 à 8 sont réservés à l'aile. */
   var CORPS = [
-    '........KKKKKKK.......',
-    '.....KKKBBBBBBBKKK....',
-    '...KKBBBBBBBBBMMMKKK..',
-    '..KWBBBBBBBBBBMMGGGK..',
-    '.KWWKBBBBBBBBBMGNKGKYY',
-    '..KWKKbbbbbbbbKGGGKYYY',
-    '....KKKKKKKKKKKKGGKKY.',
-    '................KKK...'
+    '.........KKKKKK.........',
+    '......KKKBBBBBBKKK......',
+    '....KKBBBBBBBBBBBBKK....',
+    '..KKWBBBBBBBBBBMMWGGKK..',
+    '.KWWWBBBBBBBBBBMWGGGGGK.',
+    '.KWWKKbBBBBBBBBMWGNKGGKY',
+    '..KKKKbbbbbbbbbbKGGGGGKY',
+    '.......KKKKKKKKKKGGGGKYY',
+    '.................KKKKKK.'
   ];
-  var CORPS_SPATULE = [
-    '........KKKKKKK.......',
-    '.....KKKBBBBBBBKKK....',
-    '...KKBBBBBBBBBMMMKKK..',
-    '..KWBBBBBBBBBBMMGGGKK.',
-    '.KWWKBBBBBBBBBMGNKGKYY',
-    '..KWKKbbbbbbbbKGGGKYYY',
-    '....KKKKKKKKKKKKGGKYYY',
-    '................KKKKY.'
-  ];
-  /* ⚠ L'aile a ses PROPRES lettres A (dessus) et a (ombre). Elle réutilisait W,
-   le blanc de la queue : presque blanche, elle captait l'œil bien plus que
-   l'oiseau. Un dessus d'aile de canard est gris-brun. */
-var AILE_HAUTE = [
-    '........KK............',
-    '.......KAK............',
-    '.......KAAK...........',
-    '......KAAAK...........',
-    '......KAAaK...........',
-    '.....KAAaaK...........',
-    '.....KAaaK............',
-    '....KKAaK.............'
-  ];
-  var AILE_MI = [
-    '......................',
-    '......................',
-    '..........KK..........',
-    '.........KAAK.........',
-    '........KAAaK.........',
-    '.......KAAaaK.........',
-    '.....KKAAaaK..........',
-    '....KAAAaK............'
-  ];
-  var AILE_BASSE = [
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '......................',
-    '.....KKKKK............'
-  ];
-  /* l'aile basse passe SOUS le corps : elle se dessine après lui */
-  var AILE_BASSE_BAS = [
-    '....KAAaK.............',
-    '.....KAAaaK...........',
-    '......KAaaK...........',
-    '.......KAaK...........',
-    '........KK............'
-  ];
-  /* Canard MORT, au sol : le corps SANS ses ailes (elles sont closes), tête
-     posée à hauteur du corps, œil clos. 22 x 9.
 
-     ⚠ Premier jet à jeter : la tête pendait à la verticale, ce qui dessinait
-     exactement la silhouette d'une crosse — le sprite se lisait comme un
-     pistolet. Sur une grille de vingt pixels, une tête basse ne dit pas
-     « mort », elle dit « autre objet ». Couché à plat, en revanche, c'est le
-     même corps que le canard en vol, donc reconnaissable sans ambiguïté. */
+  /* Aile coudée, avec un bord d'attaque sombre (D), un dessus (A) et une
+     ombre (a). Les trois poses sont RATTACHÉES au corps à l'épaule : au
+     premier jet, les poses mi-course et basse flottaient à côté de l'oiseau. */
+  var AILE_HAUTE = [
+    '..........KKK...........',
+    '.........KDAK...........',
+    '.........KDAK...........',
+    '........KDAAK...........',
+    '........KDAaK...........',
+    '.......KDAAaK...........',
+    '.......KDAaaK...........',
+    '......KKDAaK............',
+    '.....KKDAaK.............'
+  ];
+
+  var AILE_MI = [
+    '........................',
+    '........................',
+    '........................',
+    '......KKKK..............',
+    '.....KDAAAK.............',
+    '.....KDAAAaK............',
+    '......KDAAAaK...........',
+    '.......KDAAAaK..........',
+    '........KKDAAaK.........'
+  ];
+
+  /* pose basse : rien au-dessus du corps, tout passe dessous */
+  var AILE_BASSE = [
+    '........................',
+    '........................',
+    '........................',
+    '........................',
+    '........................',
+    '........................',
+    '........................',
+    '........................',
+    '........................'
+  ];
+
+  var AILE_BASSE_BAS = [
+    '........KKDAAaK.........',
+    '.......KDAAAaK..........',
+    '......KDAAAaK...........',
+    '.....KDAAAaK............',
+    '.....KDAAaK.............',
+    '......KKKK..............'
+  ];
+
+  /* Canard MORT, au sol : ailes closes le long des flancs, œil clos. Il
+     reprend le corps du canard en vol, donc il reste reconnaissable. */
   var MORT = [
-    '........KKKKKKK.......',
-    '.....KKKBBBBBBBKKK....',
-    '...KKBBBBBBBBBMMMKKK..',
-    '..KWBBBBBBBBBBMMGGGK..',
-    '.KWWKBBBBBBBBBMGKKGKYY',
-    '..KWKKbbbbbbbbKGGGKYYY',
-    '....KKKKKKKKKKKKGGKKY.',
-    '................KKK...',
-    '......................'
+    '.........KKKKKK.........',
+    '......KKKBBBBBBKKK......',
+    '....KKBBBBAAAAAABBKK....',
+    '..KKWBBBAAAAAAABMWGGKK..',
+    '.KWWWBBBAAAAAAAMWGGGGGK.',
+    '.KWWKKbBAAAAAAAMWGKKGGKY',
+    '..KKKKbbbbbbbbbbKGGGGGKY',
+    '.......KKKKKKKKKKGGGGKYY',
+    '.................KKKKKK.'
   ];
 
   var ESPECES = {
     colvert: { nom: 'Colvert', points: 1, ech: 3, vitesse: 1.00, poids: 50,
-      teinte: '#1D7A3E', spatule: false,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', A:'#A8AEB6', a:'#7B828A',
-             b:'#5E6874', B:'#98A1AC', M:'#7A4526', G:'#1D7A3E', Y:'#E8A62C' } },
+      teinte: '#1D7A3E',
+      pal: { K:'#181818', W:'#F2F2EE', N:'#FFFFFF', D:'#5A616A', A:'#A8AEB6', a:'#7B828A',
+             b:'#5E6874', B:'#A6ADB5', M:'#7A4526', G:'#1D7A3E', Y:'#E8A62C' } },
     souchet: { nom: 'Souchet', points: 2, ech: 3, vitesse: 1.18, poids: 30,
-      teinte: '#A8531F', spatule: true,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', A:'#9FB2B8', a:'#6C7F86',
+      teinte: '#A8531F',
+      pal: { K:'#181818', W:'#F2F2EE', N:'#FFFFFF', D:'#46545B', A:'#9FB2B8', a:'#6C7F86',
              b:'#4A585F', B:'#A8531F', M:'#F0EADA', G:'#14573A', Y:'#2B2F35' } },
     sarcelle: { nom: 'Sarcelle', points: 3, ech: 3, vitesse: 1.45, poids: 20,
-      teinte: '#7A3B22', spatule: false,
-      pal: { K:'#181818', W:'#F4F4EC', N:'#FFFFFF', A:'#A9AEA8', a:'#7B807A',
-             b:'#63635C', B:'#B9BCB8', M:'#E6DCC4', G:'#7A3B22', Y:'#2A2E33' } },
+      teinte: '#7A3B22',
+      pal: { K:'#181818', W:'#F2F2EE', N:'#FFFFFF', D:'#5C615B', A:'#A9AEA8', a:'#7B807A',
+             b:'#63635C', B:'#BEC2BE', M:'#E6DCC4', G:'#7A3B22', Y:'#2A2E33' } },
     mandarin: { nom: 'Mandarin', points: 5, ech: 3, vitesse: 3.40, poids: 0,
-      teinte: '#D9772B', spatule: false,
-      pal: { K:'#181818', W:'#F0A24E', N:'#FFFFFF', A:'#8A7EA0', a:'#5A5470',
-             b:'#4A4458', B:'#D3B36A', M:'#4A2E5C', G:'#1B5E3A', Y:'#C6362F' } }
+      teinte: '#D9772B',
+      pal: { K:'#181818', W:'#F0A24E', N:'#FFFFFF', D:'#3E3950', A:'#8A7EA0', a:'#5A5470',
+             b:'#4A4458', B:'#D8B96F', M:'#4A2E5C', G:'#1B5E3A', Y:'#C6362F' } }
   };
 
   function canardSVG(e) {
-    var corps = runs(e.spatule ? CORPS_SPATULE : CORPS, e.pal, 0, 7);
-    return svgPx(22, 20, ''
+    var corps = runs(CORPS, e.pal, 0, 9);
+    return svgPx(24, 24, ''
       + '<g class="att-f0">' + runs(AILE_HAUTE, e.pal) + corps + '</g>'
       + '<g class="att-f1">' + runs(AILE_MI, e.pal) + corps + '</g>'
       + '<g class="att-f2">' + runs(AILE_BASSE, e.pal) + corps
-        + runs(AILE_BASSE_BAS, e.pal, 0, 15) + '</g>', e.ech);
+        + runs(AILE_BASSE_BAS, e.pal, 0, 18) + '</g>', e.ech);
   }
   function canardFixe(e, ech) {
-    return svgPx(22, 20, runs(AILE_HAUTE, e.pal)
-      + runs(e.spatule ? CORPS_SPATULE : CORPS, e.pal, 0, 7), ech || e.ech);
+    return svgPx(24, 24, runs(AILE_HAUTE, e.pal) + runs(CORPS, e.pal, 0, 9), ech || e.ech);
   }
   function canardMortSVG(e, ech) {
-    return svgPx(22, 9, runs(MORT, e.pal), ech || e.ech);
+    return svgPx(24, 9, runs(MORT, e.pal), ech || e.ech);
   }
 
   /* ============================================================
@@ -503,7 +500,7 @@ var AILE_HAUTE = [
     }
     var e = ESPECES[cle];
     var dir = Math.random() < .62 ? 1 : -1;
-    var l = 22 * e.ech, h = 20 * e.ech;
+    var l = 24 * e.ech, h = 24 * e.ech;
     var base = alea(H * .05, Math.max(0, H - SOL - h));
     var el = document.createElement('div');
     el.className = 'att-canard';
@@ -583,7 +580,7 @@ var AILE_HAUTE = [
     var h = '';
     for (var i = 0; i < d.charges.length; i++) {
       h += '<g transform="translate(' + (21 + i * 2) + ',' + (12 + i * 4)
-        + ') scale(.6)">' + runs(MORT, d.charges[i].esp.pal) + '</g>';
+        + ') scale(.55)">' + runs(MORT, d.charges[i].esp.pal) + '</g>';
     }
     d.prise.innerHTML = h;
   }
@@ -670,7 +667,7 @@ var AILE_HAUTE = [
         if (c.y >= solY - 9 * c.esp.ech) {
           c.y = solY - 9 * c.esp.ech;
           c.el.innerHTML = canardMortSVG(c.esp);   // ailes closes, tête pendante
-          c.l = 22 * c.esp.ech;
+          c.l = 24 * c.esp.ech;
           c.gisant = true;
           gisants.push(c);
           while (gisants.length > 8) {   /* le chien ne suit plus : on désencombre */
@@ -732,6 +729,6 @@ var AILE_HAUTE = [
       return this;
     },
     score: function () { return score; },
-    version: '2.7-pixel'
+    version: '3.0-pixel'
   };
 })();
