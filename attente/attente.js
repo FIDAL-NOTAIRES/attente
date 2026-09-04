@@ -19,6 +19,33 @@
                      graduée, grésillement au déplacement, silence par défaut
                      (aucune mémorisation de la dernière station)
 
+   ── v4.3 (04/09/2026) ────────────────────────────────────────────────────
+   Le Top 14 rejoint le panneau de stade, dans un SECOND ÉCRAN LED sous celui
+   de la Ligue 1. Un seul caisson, deux écrans empilés.
+
+   ⚠ La carte rugby distincte, côte à côte, a été codée puis ÉCARTÉE sans
+   jamais être déployée : elle ajoutait 306 px à une rangée qui en occupait
+   déjà 1 720, et faisait passer les cartes à la ligne. Ne pas y revenir : le
+   budget qui manque est celui de la LARGEUR, pas celui de la hauteur — et la
+   hauteur, ajuster() sait l'absorber.
+
+   Six rangs visibles par championnat, huit au clic sur le bouton en pied du
+   caisson. Les huit sont toujours dans le DOM : le dépliage ne fait que lever
+   un masquage CSS, sans nouveau rendu. Douze rangs dans un caisson prévu pour
+   huit, donc lignes resserrées en mode deux écrans (voir .att-double).
+
+   Chaque écran s'allume seulement si sa source a répondu. Si l'une tombe,
+   l'autre affiche seule — les deux sports ne partagent aucune source :
+   Ligue 1 par /api/veille (football-data.org), Top 14 par /api/rugby, qui lit
+   fr.wikipedia.org via l'API MediaWiki. Ni clé, ni quota, ni échéance de ce
+   côté-là. API-Sports a été ouvert le 03/09 puis écarté le même jour : son
+   palier gratuit n'ouvre que les saisons 2022 à 2024, et aucune source
+   payante n'est retenue.
+
+   Le remplissage du second écran vit dans carte-rugby.js, chargé comme
+   stand.js : même motif, même raison. Le gabarit HTML et le style, eux,
+   restent ici.
+
    ⚠ Toutes les animations vivent sur le compositeur (transform/opacity) :
    coût nul sur le traitement qui tourne derrière. Un onglet qui joue de
    l'audio est exempté de l'étranglement des minuteries en arrière-plan par
@@ -187,7 +214,10 @@
        ALLUMÉ : caisson bleu vif, bandeau de titre en canard, témoin vert qui
        respire, écran encastré à matrice de points, points en ambre franc, et
        les rangs en pastilles (podium doré, places européennes en cyan) — le
-       classement dit ainsi quelque chose au lieu d'aligner des chiffres. --- */
+       classement dit ainsi quelque chose au lieu d'aligner des chiffres.
+       ⚠ DEUX cartes utilisent ce panneau depuis le 03/09 : la Ligue 1, montée
+       ici, et le Top 14, monté par carte-rugby.js. Toute retouche d'allure
+       vaut donc pour les deux. --- */
 #att-voile .att-panneau{width:290px;background:linear-gradient(#18344c,#0e2133);
   border:1px solid #42627e;border-radius:8px;padding:0 0 12px;
   display:flex;flex-direction:column;
@@ -219,6 +249,32 @@
   border-radius:3px;font:600 10.5px/1 "Segoe UI",sans-serif;background:rgba(255,255,255,.09);color:#b9cadb}
 #att-voile .att-rang.podium{background:${C.jauneForme};color:${C.nuit}}
 #att-voile .att-rang.euro{background:rgba(109,213,220,.2);color:${C.cyan}}
+
+/* ---- DEUX ÉCRANS DANS UN SEUL CAISSON (décision du 03/09) ----
+       Ligue 1 au-dessus, Top 14 en dessous. Chaque bloc porte son intitulé et
+       sa journée ; le bandeau du caisson ne dit plus que « Classements ». --- */
+#att-voile .att-double{display:flex;flex-direction:column;gap:6px}
+#att-voile .att-bloc{display:none;flex-direction:column}
+#att-voile .att-bloc.on{display:flex}
+#att-voile .att-bloc-tete{display:flex;align-items:baseline;gap:8px;padding:0 13px;margin:9px 0 -3px}
+#att-voile .att-bloc-nom{font:600 11px/1 "Segoe UI",sans-serif;letter-spacing:1.4px;
+  text-transform:uppercase;color:#cfe2e6}
+#att-voile .att-bloc-jour{margin-left:auto;font:10.5px/1 "Consolas","Courier New",monospace;color:#7f97ab}
+/* ⚠ Lignes resserrées : douze rangs dans un caisson dessiné pour huit. Sans
+   ça la carte devient la plus haute de la rangée, align-items:stretch tire
+   toutes les autres à sa hauteur, et ajuster() réduit l'écran entier. */
+#att-voile .att-double .att-ecran{margin:5px 12px 0;padding:7px 10px}
+#att-voile .att-double .att-ecran thead td{padding:0 0 4px}
+#att-voile .att-double .att-ecran tbody td{padding:2px 0}
+#att-voile .att-double .att-ecran td.equipe{font-size:12.5px;padding:2px 8px}
+#att-voile .att-double .att-ecran td.pts{font-size:13.5px}
+/* rangs 7 et 8 présents dans le DOM mais masqués : déplier ne relance aucun
+   rendu, ça lève juste cette règle. */
+#att-voile .att-panneau[data-deplie="0"] .att-ecran tbody tr:nth-child(n+7){display:none}
+#att-voile .att-deplier{display:block;width:calc(100% - 24px);margin:10px 12px 0;padding:5px 0;
+  background:rgba(255,255,255,.06);border:1px solid rgba(109,213,220,.3);border-radius:4px;
+  color:#bfd4d7;font:11.5px/1 "Segoe UI",sans-serif;cursor:pointer}
+#att-voile .att-deplier:hover{background:rgba(109,213,220,.14);color:#eaf3fb}
 @keyframes att-pulse{0%,100%{opacity:1}50%{opacity:.28}}
 
 /* ---- COMPTEURS — compteur électrique : cadran rond en tête, tambours à
@@ -496,18 +552,38 @@
   <div class="att-trame" id="att-trame"><div id="att-coin"></div></div>
 
   <div class="att-cartes">
-    <div class="att-carte att-panneau" id="att-c-classements">
+    <div class="att-carte att-panneau" id="att-c-classements" data-deplie="0">
       <div class="att-panneau-tete">
         <span class="att-led-vive"></span>
-        <h3 id="att-c-classements-t">Ligue 1</h3>
-        <span class="att-panneau-jour" id="att-c-classements-j"></span>
+        <h3>Classements</h3>
       </div>
-      <div class="att-ecran">
-        <table>
-          <thead><tr><td></td><td>Équipe</td><td style="text-align:right">Pts</td></tr></thead>
-          <tbody id="att-c-classements-b"></tbody>
-        </table>
+      <div class="att-double">
+        <section class="att-bloc" id="att-bloc-l1">
+          <div class="att-bloc-tete">
+            <span class="att-bloc-nom" id="att-c-classements-t">Ligue 1</span>
+            <span class="att-bloc-jour" id="att-c-classements-j"></span>
+          </div>
+          <div class="att-ecran">
+            <table>
+              <thead><tr><td></td><td>Équipe</td><td style="text-align:right">Pts</td></tr></thead>
+              <tbody id="att-c-classements-b"></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="att-bloc" id="att-bloc-rugby">
+          <div class="att-bloc-tete">
+            <span class="att-bloc-nom" id="att-c-rugby-t">Top 14</span>
+            <span class="att-bloc-jour" id="att-c-rugby-j"></span>
+          </div>
+          <div class="att-ecran">
+            <table>
+              <thead><tr><td></td><td>Club</td><td style="text-align:right">Pts</td></tr></thead>
+              <tbody id="att-c-rugby-b"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
+      <button class="att-deplier" id="att-deplier" type="button" aria-expanded="false">Voir les 8 premiers</button>
     </div>
 
     <div class="att-carte att-cult att-film" id="att-c-cinema">
@@ -563,8 +639,21 @@
     document.body.appendChild(v);
 
     $("att-echec-fermer").onclick = () => { $("att-echec").classList.remove("on"); v.classList.remove("on"); };
+
+    /* Dépliage du caisson de classements : 6 rangs par championnat, 8 au clic.
+       Les 8 sont déjà dans le DOM, on ne fait que lever le masquage CSS. */
+    const pan = $("att-c-classements"), bt = $("att-deplier");
+    bt.onclick = () => {
+      const ouvert = pan.getAttribute("data-deplie") === "1";
+      pan.setAttribute("data-deplie", ouvert ? "0" : "1");
+      bt.setAttribute("aria-expanded", ouvert ? "false" : "true");
+      bt.textContent = ouvert ? "Voir les 8 premiers" : "Réduire à 6 rangs";
+      ajuster();
+    };
+
     construireCadran();
     chargerStand();
+    chargerCarteRugby();
     // le corps change de taille au fil des chargements : on re-mesure tout seul
     if (window.ResizeObserver) {
       try { new ResizeObserver(ajuster).observe($("att-corps")); } catch (e) {}
@@ -681,13 +770,16 @@
       $("att-c-classements-t").textContent = d.competition || "Ligue 1";
       const j = d.journee || d.matchday;
       $("att-c-classements-j").textContent = j ? "J. " + j : "";
-      $("att-c-classements-b").innerHTML = l.map((x, i) => {
+      /* 8 rangs au maximum : au-delà, le masquage CSS des rangs 7+ ne suffit
+         plus et le dépliage ferait apparaître des lignes non prévues. */
+      $("att-c-classements-b").innerHTML = l.slice(0, 8).map((x, i) => {
         const r = +(x.rang ?? i + 1);
         const genre = r <= 3 ? " podium" : r <= 6 ? " euro" : "";
         return `<tr><td><span class="att-rang${genre}">${r}</span></td>` +
           `<td class="equipe">${echap(String(x.equipe ?? ""))}</td>` +
           `<td class="pts">${x.points ?? ""}</td></tr>`;
       }).join("");
+      $("att-bloc-l1").classList.add("on");     // cet écran-là s'allume
       $("att-c-classements").classList.add("on");
       ajuster();
     }).catch(() => {});
@@ -1062,6 +1154,28 @@
     }
   }
 
+  /* ================= CARTE RUGBY =================
+     Même motif que le stand, et pour la même raison : fichier séparé,
+     chargement facultatif. Le Top 14 a sa propre source et son propre cycle
+     de saison — inutile de rouvrir attente.js chaque fois qu'il évolue.
+
+     carte-rugby.js ne crée plus de carte : le gabarit du second écran est déjà
+     dans le caisson ci-dessus (#att-bloc-rugby). Le fichier ne fait que le
+     remplir et l'allumer. S'il ne répond pas, le caisson n'affiche que la
+     Ligue 1, rien de plus. */
+  function chargerCarteRugby() {
+    if (window.ATT_RUGBY || !BASE) return;
+    var sc = document.createElement("script");
+    /* ⚠ INCRÉMENTER à chaque version, même leçon que pour stand.js. */
+    sc.src = BASE + "/carte-rugby.js?v=2";
+    sc.async = true;
+    sc.onload = function () {
+      try { window.ATT_RUGBY.monter(); } catch (e) {}
+    };
+    sc.onerror = function () { /* pas de rugby, pas de drame */ };
+    document.head.appendChild(sc);
+  }
+
   /* ================= API PUBLIQUE ================= */
   function demarrer(opts) {
     opts = opts || {};
@@ -1094,6 +1208,9 @@
     if (E.source) E.minuterie = setInterval(lireSource, 400);
 
     chargerActus(); chargerClassements(); chargerCulturel(); chargerCompteurs();
+    // le classement de rugby ne bouge pas pendant une attente ; on le relit
+    // quand même, au cas où le premier essai serait tombé sur une source muette
+    if (window.ATT_RUGBY) { try { window.ATT_RUGBY.charger(); } catch (e) {} }
     clearInterval(E.actusMinuterie);
     E.actusMinuterie = setInterval(chargerActus, 5 * 60 * 1000);
   }
@@ -1128,5 +1245,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster();  } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "4.1" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "4.3" };
 })();
