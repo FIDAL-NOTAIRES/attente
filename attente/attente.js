@@ -19,6 +19,15 @@
                      graduée, grésillement au déplacement, silence par défaut
                      (aucune mémorisation de la dernière station)
 
+   ── v4.4 (09/09/2026) ────────────────────────────────────────────────────
+   Fondu de sortie d'une demi-seconde, décidé le 02/09 et jamais posé : la
+   sortie était une coupure sèche. « display » ne se transitionne pas, d'où la
+   classe .sortie appliquée 400 ms avant le retrait de .on — les 900 ms que
+   terminer() attendait déjà ne changent pas.
+   ⚠ demarrer() DOIT retirer .sortie en plus de .fin : sans cela la deuxième
+   attente d'une même page s'ouvrirait à opacité zéro, donc invisible, et le
+   traitement paraîtrait bloqué. Constaté au banc avant correction.
+
    ── v4.3 (04/09/2026) ────────────────────────────────────────────────────
    Le Top 14 rejoint le panneau de stade, dans un SECOND ÉCRAN LED sous celui
    de la Ligue 1. Un seul caisson, deux écrans empilés.
@@ -90,8 +99,13 @@
 
   const CSS = `
 #att-voile{position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;
-  background:${C.nuit};color:${C.encre};font:14px/1.45 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+  background:${C.nuit};color:${C.encre};font:14px/1.45 "Segoe UI",system-ui,sans-serif;overflow:hidden;
+  opacity:1;transition:opacity .5s ease}
 #att-voile.on{display:flex}
+/* Fondu de sortie, une demi-seconde (décision du 02/09/2026) : « display »
+   ne se transitionne pas, d'où cette classe posée 400 ms avant le retrait de
+   « on ». 400 + 500 = les 900 ms que terminer() attendait déjà. */
+#att-voile.sortie{opacity:0}
 #att-voile *{box-sizing:border-box}
 #att-voile button:focus-visible{outline:2px solid ${C.cyan};outline-offset:2px}
 
@@ -403,6 +417,7 @@
 }
 @media (prefers-reduced-motion: reduce){
   #att-voile .att-depeche-int{animation:none}
+  #att-voile,
   #att-voile .att-od-strip,#att-voile .att-parc,#att-voile .att-aiguille,#att-voile .att-cadran-aig{transition:none}
   #att-voile .att-led-vive{animation:none}
   #att-voile .att-aile-proche,#att-voile .att-aile-loin,
@@ -1183,7 +1198,7 @@
     const v = $("att-voile");
     if (E.on) return;
     E.on = true;
-    v.classList.remove("fin");
+    v.classList.remove("fin", "sortie");   // ⚠ sans « sortie », l'attente suivante s'ouvrirait invisible
     $("att-echec").classList.remove("on");
     $("att-titre").textContent = opts.titre || "Génération en cours";
     $("att-sous").textContent = opts.sousTitre || "";
@@ -1229,7 +1244,8 @@
     radioArreter(); E.cran = 0; majEtat("Silence"); majCrans();  // la radio se coupe TOUJOURS à la fin
     clearInterval(E.minuterie); clearInterval(E.actusMinuterie); clearInterval(E.compteursMinuterie);
     E.on = false;
-    setTimeout(() => v.classList.remove("on"), 900);
+    setTimeout(() => v.classList.add("sortie"), 400);            // le fondu part
+    setTimeout(() => v.classList.remove("on", "sortie"), 900);   // 400 + 500 ms de transition
   }
 
   /* Échec : un bandeau PAR-DESSUS le contenu qui continue de tourner — pas
@@ -1245,5 +1261,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster();  } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "4.3" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "4.4" };
 })();
