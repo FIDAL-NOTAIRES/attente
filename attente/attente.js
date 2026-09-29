@@ -422,7 +422,114 @@
   #att-voile .att-led-vive{animation:none}
   #att-voile .att-aile-proche,#att-voile .att-aile-loin,
   #att-voile .att-patte-a,#att-voile .att-patte-b{animation:none}
-}`;
+}
+
+/* ======================= v5.0 — 29/09/2026 =======================
+   Revue de JFD après le premier dossier compilé réel : « les compteurs ne se
+   voient pas en bas, le fil d'actualité est disproportionné, la mosaïque pas
+   assez belle, pas de pourcentage, le foot et la culture font triste ».
+   Arbitrage : MÊMES informations, présentation plus attrayante. Ce bloc vient
+   EN DERNIER et l'emporte sur les règles d'origine, laissées en place pour
+   l'historique ; ne pas les « nettoyer » sans relire celles-ci. */
+
+/* dépêche : une bande fine, texte courant et non plus machine à écrire */
+#att-voile .att-depeche{padding:6px 0 5px;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+#att-voile .att-depeche::after{display:none}
+#att-voile .att-depeche-etiq{padding:0 11px;font-size:9.5px;letter-spacing:1.8px}
+#att-voile .att-depeche-int{font:12.5px/1.3 "Segoe UI",system-ui,sans-serif}
+#att-voile .att-depeche b{margin:0 8px 0 26px}
+
+/* en-tête resserré, pourcentage en grand */
+#att-voile .att-haut{padding:12px 20px 2px;gap:4px}
+#att-voile .att-logo{font-size:11px;letter-spacing:4px}
+#att-voile .att-titre{font-size:25px}
+#att-voile .att-sous{margin-top:-2px;font-size:12.5px}
+#att-voile .att-phase{font-size:13.5px;min-height:18px}
+#att-voile .att-jauge{display:flex;align-items:center;gap:14px;margin-top:2px}
+#att-voile .att-pct{font:700 36px/1 "Segoe UI",system-ui,sans-serif;color:#fff;
+  font-variant-numeric:tabular-nums;min-width:104px;text-align:right}
+#att-voile .att-pct small{font-size:19px;color:${C.cyan};margin-left:2px;font-weight:600}
+#att-voile .att-jauge-droite{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+#att-voile .att-barre{width:min(560px,58vw);height:12px}
+#att-voile .att-barre>div{background:linear-gradient(90deg,${C.canard},${C.cyan})}
+#att-voile .att-reste{font-size:12px;color:${C.sourdine};min-height:15px}
+
+/* trame : un vrai plan cadastral sur papier, parcelles coloriées en carmin
+   comme dans PAINT, numéro blanc sur la parcelle faite */
+#att-voile .att-trame{height:11vh;width:min(1500px,94vw);margin-top:6px;padding:5px;
+  background:#F4EFE4;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+#att-voile .att-parc{fill:${C.carmin};fill-opacity:0;stroke:#9aa3ab;stroke-opacity:.95;stroke-width:1.1}
+#att-voile .att-parc.faite{fill-opacity:.85;stroke:#7a1030}
+#att-voile .att-num{font:600 12px "Segoe UI",sans-serif;fill:#8b9096;text-anchor:middle;
+  dominant-baseline:middle;pointer-events:none;transition:fill .8s ease}
+#att-voile .att-num.faite{fill:#fff}
+
+/* classements : carte claire, podium or / argent / bronze, pastilles rondes */
+#att-voile .att-panneau{width:300px;background:#fff;border:0;border-radius:12px;padding:0 0 10px;
+  box-shadow:0 8px 22px rgba(0,0,0,.35)}
+#att-voile .att-panneau-tete{background:linear-gradient(90deg,#16365a,${C.canard});border-radius:12px 12px 0 0;padding:9px 14px}
+#att-voile .att-bloc-nom{color:${C.nuit};display:inline-flex;align-items:center;gap:6px;font-size:11.5px}
+#att-voile #att-bloc-l1 .att-bloc-nom::before{content:"⚽";font-size:13px}
+#att-voile #att-bloc-rugby .att-bloc-nom::before{content:"🏉";font-size:13px}
+#att-voile .att-bloc-jour{color:#7c8b99}
+#att-voile .att-ecran,#att-voile .att-double .att-ecran{background:transparent;border:0;box-shadow:none;margin:6px 12px 0;padding:0}
+#att-voile .att-ecran::before{display:none}
+#att-voile .att-ecran thead td{color:#9aa6b1}
+#att-voile .att-ecran tbody td{border-top:1px solid #eef1f4}
+#att-voile .att-ecran td.equipe,#att-voile .att-double .att-ecran td.equipe{color:#22313f}
+#att-voile .att-ecran tbody tr:first-child td.equipe{color:${C.nuit};font-weight:700}
+#att-voile .att-ecran td.pts,#att-voile .att-double .att-ecran td.pts{color:${C.nuit};text-shadow:none;font-weight:700}
+#att-voile .att-rang{width:20px;height:20px;border-radius:50%;background:#eef1f4;color:#55667a}
+#att-voile .att-rang.euro{background:rgba(51,131,139,.14);color:#23666e}
+#att-voile .att-rang.podium{background:linear-gradient(#FFE58A,#E3B21F);color:#5a4200}
+#att-voile .att-ecran tbody tr:nth-child(2) .att-rang.podium{background:linear-gradient(#EEF1F4,#AEB7C1);color:#39434d}
+#att-voile .att-ecran tbody tr:nth-child(3) .att-rang.podium{background:linear-gradient(#F3CFA8,#C47D41);color:#4a2708}
+#att-voile .att-deplier{background:#f3f6f8;border:1px solid #dfe5ea;color:${C.canard};font-weight:600}
+#att-voile .att-deplier:hover{background:#e8f1f2;color:${C.nuit}}
+
+/* culture : cartes blanches à bandeau vif et pictogramme, titres numérotés */
+#att-voile .att-cult,#att-voile .att-cadre-or,#att-voile .att-film,#att-voile .att-livre{width:230px;background:#fff;
+  color:#22313f;border-radius:12px;padding:0 0 8px;box-shadow:0 8px 22px rgba(0,0,0,.35);overflow:hidden}
+#att-voile .att-film::before,#att-voile .att-film::after,
+#att-voile .att-livre::before,#att-voile .att-livre::after{display:none}
+#att-voile .att-toile{background:transparent;box-shadow:none;padding:0;color:inherit}
+#att-voile .att-cult h3{margin:0 0 6px;padding:10px 14px;color:#fff;font:700 13px/1 "Segoe UI",sans-serif;letter-spacing:.4px}
+#att-voile .att-cult h3::after{display:none}
+#att-voile .att-film h3{background:linear-gradient(90deg,${C.carmin},${C.carminVif});color:#fff}
+#att-voile .att-toile h3{background:linear-gradient(90deg,#E8801A,${C.orange});color:#fff}
+#att-voile .att-livre h3{background:linear-gradient(90deg,${C.canard},#4fb3bb);color:#fff}
+#att-voile .att-film h3::before{content:"🎬"}
+#att-voile .att-toile h3::before{content:"🎨"}
+#att-voile .att-livre h3::before{content:"📚"}
+#att-voile .att-cult ul{padding:0 14px;counter-reset:att-c}
+/* ⚠ padding vertical NUL sur li : il est rogné par -webkit-line-clamp avec le
+   reste, et laissait voir le haut d'une quatrième ligne (constaté au banc). */
+#att-voile .att-cult li{color:#22313f;font-size:12.5px;line-height:1.4;padding:0 0 0 27px;margin:4px 0;max-height:4.2em}
+#att-voile .att-cult li::before{counter-increment:att-c;content:counter(att-c);top:0;left:0;width:19px;height:19px;
+  border-radius:50%;font:700 10.5px/19px "Segoe UI",sans-serif;text-align:center}
+#att-voile .att-film li::before{background:rgba(160,16,64,.12);color:${C.carmin}}
+#att-voile .att-toile li::before{background:rgba(255,152,45,.18);color:#a85600}
+#att-voile .att-livre li::before{background:rgba(51,131,139,.15);color:#23666e}
+#att-voile .att-cult a:hover{text-decoration-color:currentColor}
+
+/* compteurs : une rangée à eux, quatre colonnes, cadre plus lumineux */
+#att-voile .att-compteur{flex:0 0 100%;max-width:1080px;width:auto;border-radius:12px;padding:10px 16px 12px;
+  background:linear-gradient(#1c3550,#15293f);border:1px solid #3b5874}
+#att-voile .att-grille{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 12px}
+#att-voile .att-compteur h3::before{content:"🌍 "}
+
+/* radio : poste plus bas */
+#att-voile .att-poste{margin:4px 0 6px;padding:6px 14px 7px}
+#att-voile .att-echelle{height:36px}
+#att-voile .att-cartes{padding:8px 18px 4px;gap:14px}
+
+@media (max-height:860px){
+  #att-voile .att-haut{padding:8px 20px 0;gap:3px}
+  #att-voile .att-titre{font-size:21px}
+  #att-voile .att-pct{font-size:30px}
+  #att-voile .att-trame{height:9vh}
+}
+`;
 
   /* ---------- radios : adresses de flux EN DUR, aucun appel à /api/veille.
      ⚠ NON CONTRACTUELLES (constat PAINT sur Radio Classique) : un flux qui ne
@@ -558,8 +665,13 @@
     <div class="att-titre" id="att-titre">Génération en cours</div>
     <div class="att-sous" id="att-sous"></div>
     <div class="att-phase" id="att-phase">Préparation…</div>
-    <div class="att-barre"><div id="att-barre-int"></div></div>
-    <div class="att-compte" id="att-compte"></div>
+    <div class="att-jauge">
+      <div class="att-pct" id="att-pct">0<small>%</small></div>
+      <div class="att-jauge-droite">
+        <div class="att-barre"><div id="att-barre-int"></div></div>
+        <div class="att-reste"><span id="att-compte"></span><span id="att-reste"></span></div>
+      </div>
+    </div>
   </div>
 
   <div class="att-cadre">
@@ -682,18 +794,26 @@
   function alea(graine) { return () => (graine = (graine * 16807) % 2147483647) / 2147483647; }
   function trameGenerique() {
     const r = alea(75008); // clin d'œil au code postal du cabinet
-    const NX = 22, NY = 4, W = 1540, H = 250, mx = W / NX, my = H / NY;
+    // v5.0 : bande basse et longue, deux rangs de parcelles numérotées, et
+    // « slice » au lieu de « none » pour que les numéros ne soient pas écrasés.
+    const NX = 26, NY = 2, W = 1540, H = 118, mx = W / NX, my = H / NY;
     const px = [], sommets = [];
     for (let j = 0; j <= NY; j++) { sommets[j] = []; for (let i = 0; i <= NX; i++) {
       const bx = i === 0 || i === NX ? 0 : (r() - .5) * mx * .55;
       const by = j === 0 || j === NY ? 0 : (r() - .5) * my * .55;
       sommets[j][i] = [i * mx + bx, j * my + by];
     }}
+    const nums = [];
+    let numero = 12 + Math.floor(r() * 40), k = 0;
     for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
       const p = [sommets[j][i], sommets[j][i + 1], sommets[j + 1][i + 1], sommets[j + 1][i]];
-      px.push(`<polygon class="att-parc" points="${p.map((c) => c.map((n) => n.toFixed(1)).join(",")).join(" ")}"/>`);
+      px.push(`<polygon class="att-parc" data-k="${k}" points="${p.map((c) => c.map((n) => n.toFixed(1)).join(",")).join(" ")}"/>`);
+      const cx = (p[0][0] + p[1][0] + p[2][0] + p[3][0]) / 4, cy = (p[0][1] + p[1][1] + p[2][1] + p[3][1]) / 4;
+      numero += 1 + Math.floor(r() * 3);
+      nums.push(`<text class="att-num" id="att-num-${k}" x="${cx.toFixed(1)}" y="${cy.toFixed(1)}">${numero}</text>`);
+      k++;
     }
-    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${px.join("")}</svg>`;
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${px.join("")}${nums.join("")}</svg>`;
   }
   function poserTrame(svg) {
     const bloc = $("att-trame");
@@ -714,11 +834,14 @@
   }
   function coloriser(pct) {
     const cible = Math.round((pct / 100) * E.parcelles.length);
-    const teintes = [C.canard, C.cyan, C.orange, C.carmin, C.jauneForme];
+    // v5.0 : un seul carmin, celui de la colorisation PAINT, légèrement nuancé
+    const teintes = [C.carmin, "#B3194D", "#8E0E38"];
     while (E.faites < cible && E.faites < E.parcelles.length) {
       const p = E.parcelles[E.faites];
       p.style.fill = teintes[E.faites % teintes.length];
       p.classList.add("faite");
+      const kk = p.getAttribute("data-k");
+      if (kk != null) { const t = $("att-num-" + kk); if (t) t.classList.add("faite"); }
       E.faites++;
     }
   }
@@ -749,8 +872,24 @@
   }
   function appliquer(pct, phase) {
     pct = Math.max(0, Math.min(100, pct));
+    // une phase nouvelle repart de zéro (PAINT enchaîne plans puis extraits) :
+    // l'estimation du temps restant repart avec elle
+    if (pct < E.pct - 20 || !E.debut) E.debut = Date.now();
     E.pct = pct;
     $("att-barre-int").style.width = pct + "%";
+    const pc = $("att-pct");
+    if (pc) pc.innerHTML = Math.floor(pct) + "<small>%</small>";
+    const rs = $("att-reste");
+    if (rs) {
+      const ecoule = (Date.now() - E.debut) / 1000;
+      let txt = "";
+      if (pct >= 4 && pct < 100 && ecoule > 15) {
+        const reste = ecoule * (100 - pct) / pct;
+        txt = reste < 60 ? "moins d'une minute" : "environ " + Math.round(reste / 60) + " min";
+        txt = ($("att-compte").textContent ? " · " : "") + txt + " restante" + (reste >= 120 ? "s" : "");
+      }
+      rs.textContent = txt;
+    }
     if (phase) $("att-phase").textContent = phase;
     coloriser(pct);
     standProgression(pct);   // le stand suit l'avancement réel du dossier
@@ -906,7 +1045,7 @@
     if (!cadre || !corps) return;
     const besoin = corps.offsetHeight, dispo = cadre.clientHeight;
     if (!besoin || !dispo) return;
-    const z = Math.min(1, Math.max(.58, dispo / besoin));
+    const z = Math.min(1, Math.max(.5, dispo / besoin));   // v5.0 : plancher 0,5 (0,58 laissait rogner les compteurs)
     corps.style.setProperty("--att-z", z.toFixed(3));
   }
 
@@ -1205,6 +1344,7 @@
     $("att-phase").textContent = "Préparation…";
     $("att-compte").textContent = "";
     $("att-barre-int").style.width = "0%";
+    E.debut = Date.now(); E.pct = 0;
     poserTrame(opts.trame || null);
     v.classList.add("on");
     appliquer(0, null);
@@ -1261,5 +1401,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster();  } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "4.4" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "5.0" };
 })();
