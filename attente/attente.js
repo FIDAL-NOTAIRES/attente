@@ -523,6 +523,34 @@
 #att-voile .att-echelle{height:36px}
 #att-voile .att-cartes{padding:8px 18px 4px;gap:14px}
 
+/* ======================= v5.1 — 23/11/2026 =======================
+   Demande de JFD sur capture d'écran : « mets tout sur la même largeur ».
+   Jusqu'ici chaque étage avait la sienne (jauge 560, trame 1500, cartes
+   1032, compteurs 1080, radio 560). Désormais UNE largeur commune, --att-L,
+   pour la jauge, le plan cadastral, la rangée de cartes, les compteurs et
+   le poste de radio.
+   ⚠ La jauge et le poste sont HORS du corps mis à l'échelle : pour tomber
+   au même aplomb que le reste, leur largeur est multipliée par --att-z, que
+   ajuster() pose maintenant sur le voile entier (et non plus sur le corps).
+   ⚠ Les cartes se partagent la largeur (flex) au lieu de porter une largeur
+   en dur : la rangée ne peut plus passer à la ligne, sauf écran étroit. */
+#att-voile{--att-L:min(1240px,94vw)}
+#att-voile .att-jauge{width:calc(var(--att-L) * var(--att-z,1));max-width:94vw}
+#att-voile .att-pct{min-width:0;text-align:left}
+#att-voile .att-jauge-droite{flex:1 1 auto;min-width:0;align-items:stretch}
+#att-voile .att-barre{width:100%}
+#att-voile .att-reste{text-align:left}
+#att-voile .att-trame{width:var(--att-L)}
+/* ⚠ La règle « .att-trame svg{width:100%;height:100%} », écrite pour le plan,
+   attrapait aussi le canard de l'icône du stand : il prenait toute la largeur
+   du bouton et chassait « Stand de tir » hors du plan (capture du 23/11). */
+#att-voile #att-coin svg{width:auto;height:auto}
+#att-voile .att-cartes{width:var(--att-L);padding-left:0;padding-right:0;box-sizing:border-box}
+#att-voile .att-panneau{width:auto;flex:1.3 1 0;min-width:210px}
+#att-voile .att-cult,#att-voile .att-cadre-or,#att-voile .att-film,#att-voile .att-livre{width:auto;flex:1 1 0;min-width:170px}
+#att-voile .att-compteur{flex:0 0 100%;max-width:none;width:100%;box-sizing:border-box}
+#att-voile .att-poste{width:calc(var(--att-L) * var(--att-z,1));max-width:94vw;box-sizing:border-box}
+
 @media (max-height:860px){
   #att-voile .att-haut{padding:8px 20px 0;gap:3px}
   #att-voile .att-titre{font-size:21px}
@@ -1046,7 +1074,9 @@
     const besoin = corps.offsetHeight, dispo = cadre.clientHeight;
     if (!besoin || !dispo) return;
     const z = Math.min(1, Math.max(.5, dispo / besoin));   // v5.0 : plancher 0,5 (0,58 laissait rogner les compteurs)
-    corps.style.setProperty("--att-z", z.toFixed(3));
+    // v5.1 : posé sur le voile entier — la jauge et le poste de radio, hors du
+    // corps, s'en servent pour garder la même largeur que lui à l'écran.
+    $("att-voile").style.setProperty("--att-z", z.toFixed(3));
   }
 
   function tictacCompteurs(saut) {
@@ -1401,5 +1431,5 @@
 
   window.addEventListener("resize", () => { if (E.on) { poserAiguille(E.ratio); ajuster();  } });
 
-  window.ATTENTE = { demarrer, progression, terminer, echec, version: "5.0" };
+  window.ATTENTE = { demarrer, progression, terminer, echec, version: "5.1" };
 })();
