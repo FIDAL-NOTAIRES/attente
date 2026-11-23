@@ -367,6 +367,8 @@
        glissée sous la carte, elle devenait introuvable — et c'est le seul
        moyen de replier le stand. Elle porte donc aussi son intitulé. */
     + '.att-stand-icone{display:flex;align-items:center;gap:8px;padding:5px 11px 5px 7px;'
+      /* v8.5 — largeur au contenu : l'hôte est un point sans dimension. */
+      + 'width:max-content;box-sizing:border-box;'
       + 'border-radius:10px;background:' + C.nuit + ';border:1.5px solid ' + C.cyan + ';'
       + 'cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);'
       + 'font:600 11.5px/1 "Segoe UI",sans-serif;letter-spacing:.6px;color:' + C.cyan + '}'
@@ -495,7 +497,9 @@
     };
     racine.innerHTML = ''
       + '<button class="att-stand-icone" type="button" aria-label="Ouvrir le stand de tir">'
-      +   canardFixe(ESPECES.colvert, 4) + '<span>Stand de tir</span></button>';
+      +   /* v8.5 — canard à l'échelle 2 (40 px) : à l'échelle 4 le bouton
+             dépassait la hauteur du plan cadastral. */
+          canardFixe(ESPECES.colvert, 2) + '<span>Stand de tir</span></button>';
 
     carte = document.createElement('div');
     carte.className = 'att-stand-carte';
@@ -776,6 +780,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '8.4-croix-de-sortie'
+    version: '8.5-croix-de-sortie'
   };
 })();
