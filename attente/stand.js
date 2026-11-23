@@ -402,6 +402,18 @@
       + 'font-variant-numeric:tabular-nums;line-height:1}'
     + '.att-stand-score span{font-size:11px;font-family:"Segoe UI",sans-serif;'
       + 'color:' + C.cyan + ';margin-left:4px}'
+    /* v8.4 — croix de sortie, en haut à droite de la carte. Le titre pousse
+       le score et la croix à droite (margin-right:auto) ; la croix se centre
+       seule, sans suivre l'alignement sur la ligne de base du titre. */
+    + '.att-stand-tete h4{margin-right:auto}'
+    + '.att-stand-croix{align-self:center;flex:0 0 auto;width:26px;height:26px;padding:0;'
+      + 'display:flex;align-items:center;justify-content:center;border-radius:6px;'
+      + 'background:transparent;border:1.5px solid rgba(109,213,220,.45);'
+      + 'color:' + C.cyan + ';cursor:pointer}'
+    + '.att-stand-croix svg{display:block}'
+    + '.att-stand-croix:hover{border-color:' + C.jauneForme + ';color:' + C.jauneForme + ';'
+      + 'background:rgba(255,231,100,.12)}'
+    + '.att-stand-croix:focus-visible{outline:2px solid ' + C.jauneForme + ';outline-offset:2px}'
 
     + '.att-ciel{position:relative;overflow:hidden;cursor:crosshair;line-height:0;height:300px}'
     + '.att-fond{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;'
@@ -491,7 +503,12 @@
     carte.setAttribute('aria-label', 'Stand de tir');
     carte.innerHTML = ''
       + '<div class="att-stand-tete"><h4>Stand de tir</h4>'
-      +   '<div class="att-stand-score">0<span>points</span></div></div>'
+      +   '<div class="att-stand-score">0<span>points</span></div>'
+      +   '<button class="att-stand-croix" type="button" title="Quitter le jeu"'
+      +     ' aria-label="Quitter le stand de tir">'
+      +     '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">'
+      +     '<path d="M1.5 1.5l9 9M10.5 1.5l-9 9" fill="none" stroke="currentColor"'
+      +     ' stroke-width="2" stroke-linecap="square"/></svg></button></div>'
       + '<div class="att-ciel">'
       +   '<svg class="att-fond" viewBox="0 0 188 100" preserveAspectRatio="none"'
       +     ' shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"></svg>'
@@ -509,6 +526,9 @@
 
     racine.querySelector('.att-stand-icone')
       .addEventListener('click', function () { ouvert ? replier() : deplier(); });
+    /* v8.4 — la croix replie le stand, exactement comme le bouton « Replier » :
+       partie gelée, score conservé tant que la génération tourne. */
+    carte.querySelector('.att-stand-croix').addEventListener('click', replier);
     ciel.addEventListener('pointerdown', tir);
     hote.appendChild(racine);
     document.body.appendChild(carte);
@@ -756,6 +776,6 @@
       return this;
     },
     score: function () { return score; },
-    version: '8.3-ailes-a-miroir'
+    version: '8.4-croix-de-sortie'
   };
 })();
