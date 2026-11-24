@@ -1,5 +1,5 @@
 /* ============================================================
-   ATTENTE — stand de tir  (v9.0, canards peints)
+   ATTENTE — stand de tir  (v9.1, canards peints)
    Module autonome, zéro dépendance, aucun fichier externe : les
    images des canards sont embarquées dans ce fichier (section 8).
 
@@ -13,6 +13,11 @@
    l'aile levée : celles du mandarin sont médiocres, il ne bat donc
    que sur les trois premières (il passe en éclair, on n'y voit rien).
    Le décor et le chien restent en pixels pour l'instant.
+
+   ── v9.1 (24/11/2026) — CHUTE EN TOURBILLON ────────────────────
+   Le canard touché ne pique plus du bec : il tombe en vrille,
+   en tournant sur lui-même et en se balançant de gauche à droite,
+   un peu moins vite qu'avant pour que la vrille se voie.
    API :
      ATT_STAND.monter(hote) / progression(0..1) / arreter() / demonter()
    Aucun son : la radio reste seule source audio.
@@ -361,9 +366,11 @@
       + '75%{background-position:50% 0}87.5%{background-position:25% 0}}'
     + '@keyframes att-vol3{0%{background-position:0 0}25%{background-position:25% 0}'
       + '50%{background-position:50% 0}75%{background-position:25% 0}}'
-    /* touché : ailes levées figées, l'oiseau pique du bec en tombant */
-    + '.att-touche .att-oiseau{animation:none;background-position:0 0;'
-      + 'transform:rotate(68deg);transition:transform .38s ease-in}'
+    /* v9.1 — touché : ailes à demi levées, l'oiseau tombe en vrille. Le sens
+       de rotation suit le sens du vol (le conteneur est retourné par scaleX). */
+    + '.att-touche .att-oiseau{background-position:25% 0;'
+      + 'animation:att-vrille .5s linear infinite}'
+    + '@keyframes att-vrille{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}'
     /* au sol : aile refermée, sur le dos */
     + '.att-gisant .att-oiseau{animation:none;background-position:50% 0;'
       + 'transform:rotate(180deg);transition:none}'
@@ -400,6 +407,7 @@
 
     + '@media (prefers-reduced-motion:reduce){'
       + '.att-vol5,.att-vol3{animation-duration:1.2s}'
+      + '.att-touche .att-oiseau{animation-duration:1.4s}'
       + '.att-chien .att-f0,.att-chien .att-f1{animation-duration:.9s}}';
 
   /* ============================================================
@@ -536,7 +544,8 @@
     if (c.touche) return;
     c.touche = true;
     c.vy = 40;
-    c.el.classList.add('att-touche');     // ailes hautes figées, pique du bec (CSS)
+    c.el.classList.add('att-touche');     // tombe en vrille (CSS)
+    c.tChute = 0; c.xChute = c.x;
     score += c.esp.points;
     elScore.innerHTML = score + '<span>points</span>';
     marque(ev, '+' + c.esp.points);
@@ -648,9 +657,14 @@
           c.el.remove(); canards.splice(j, 1); continue;
         }
       } else {
-        c.vy += 780 * dt;
+        /* v9.1 — chute en tourbillon : pesanteur adoucie (780 -> 520) et
+           vitesse plafonnée pour laisser voir la vrille ; l'oiseau se balance
+           de part et d'autre de sa verticale, qui dérive un peu dans le sens du vol. */
+        c.tChute += dt;
+        c.vy = Math.min(c.vy + 520 * dt, 300);
         c.y += c.vy * dt;
-        c.x += c.dir * 22 * dt;
+        c.xChute += c.dir * 22 * dt;
+        c.x = c.xChute + Math.sin(c.tChute * 7) * 16;
         /* v9.0 — le corps occupe le milieu de la pose : on arrête la chute
            quand ce milieu atteint l'herbe, pas le bas du cadre. */
         if (c.y >= solY - c.h * GISANT) {
@@ -716,7 +730,7 @@
       return this;
     },
     score: function () { return score; },
-    version: '9.0-canards-peints'
+    version: '9.1-chute-en-tourbillon'
   };
 
   /* ============================================================
