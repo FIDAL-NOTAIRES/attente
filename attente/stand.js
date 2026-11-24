@@ -1,5 +1,5 @@
 /* ============================================================
-   ATTENTE — stand de tir  (v9.1, canards peints)
+   ATTENTE — stand de tir  (v9.2, canards peints)
    Module autonome, zéro dépendance, aucun fichier externe : les
    images des canards sont embarquées dans ce fichier (section 8).
 
@@ -14,10 +14,15 @@
    que sur les trois premières (il passe en éclair, on n'y voit rien).
    Le décor et le chien restent en pixels pour l'instant.
 
-   ── v9.1 (24/11/2026) — CHUTE EN TOURBILLON ────────────────────
-   Le canard touché ne pique plus du bec : il tombe en vrille,
-   en tournant sur lui-même et en se balançant de gauche à droite,
-   un peu moins vite qu'avant pour que la vrille se voie.
+   ── v9.1 (24/11/2026) — CHUTE RALENTIE ─────────────────────────
+   Le canard touché tombe un peu moins vite, en se balançant.
+
+   ── v9.2 (24/11/2026) — TOURBILLON VERS LE BAS, PAS DE SALTO ───
+   La v9.1 faisait tourner l'oiseau À PLAT, dans le plan de l'écran :
+   il enchaînait les saltos. Ici il bascule tête en bas puis tourne
+   autour de la VERTICALE (rotateY), comme une vrille d'avion ou une
+   feuille qui tombe ; le balancement gauche-droite est calé sur la
+   même rotation, ce qui dessine une hélice.
    API :
      ATT_STAND.monter(hote) / progression(0..1) / arreter() / demonter()
    Aucun son : la radio reste seule source audio.
@@ -366,11 +371,10 @@
       + '75%{background-position:50% 0}87.5%{background-position:25% 0}}'
     + '@keyframes att-vol3{0%{background-position:0 0}25%{background-position:25% 0}'
       + '50%{background-position:50% 0}75%{background-position:25% 0}}'
-    /* v9.1 — touché : ailes à demi levées, l'oiseau tombe en vrille. Le sens
-       de rotation suit le sens du vol (le conteneur est retourné par scaleX). */
-    + '.att-touche .att-oiseau{background-position:25% 0;'
-      + 'animation:att-vrille .5s linear infinite}'
-    + '@keyframes att-vrille{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}'
+    /* v9.2 — touché : ailes levées figées ; la vrille elle-même est posée par
+       le moteur à chaque image (voir boucle), pour rester calée sur le
+       balancement. */
+    + '.att-touche .att-oiseau{animation:none;background-position:0 0}'
     /* au sol : aile refermée, sur le dos */
     + '.att-gisant .att-oiseau{animation:none;background-position:50% 0;'
       + 'transform:rotate(180deg);transition:none}'
@@ -407,7 +411,6 @@
 
     + '@media (prefers-reduced-motion:reduce){'
       + '.att-vol5,.att-vol3{animation-duration:1.2s}'
-      + '.att-touche .att-oiseau{animation-duration:1.4s}'
       + '.att-chien .att-f0,.att-chien .att-f1{animation-duration:.9s}}';
 
   /* ============================================================
@@ -419,6 +422,8 @@
   var dernier = 0, prochainTir = 0, dernierRare = -1e9, horloge = 0;
   var MAX_PRISES = 3, SOL = 24 * ECH;   // hauteur de la bande d'herbe, en px
   var GISANT = 0.58;                    // part de la pose au-dessus de l'herbe, canard au sol
+  var VRILLE_T = 0.55;                  // durée d'un tour de vrille, en secondes
+  var CALME = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches);
 
   function lerp(a, b, t) { return a + (b - a) * t; }
   function alea(a, b) { return a + Math.random() * (b - a); }
@@ -544,8 +549,8 @@
     if (c.touche) return;
     c.touche = true;
     c.vy = 40;
-    c.el.classList.add('att-touche');     // tombe en vrille (CSS)
-    c.tChute = 0; c.xChute = c.x;
+    c.el.classList.add('att-touche');     // ailes figées ; la vrille est dans la boucle
+    c.tChute = 0; c.xChute = c.x; c.oiseau = c.el.firstChild;
     score += c.esp.points;
     elScore.innerHTML = score + '<span>points</span>';
     marque(ev, '+' + c.esp.points);
@@ -664,11 +669,18 @@
         c.vy = Math.min(c.vy + 520 * dt, 300);
         c.y += c.vy * dt;
         c.xChute += c.dir * 22 * dt;
-        c.x = c.xChute + Math.sin(c.tChute * 7) * 16;
+        /* v9.2 — tête en bas (bascule en 0,2 s), puis rotation autour de la
+           verticale : un tour en VRILLE_T secondes. Le balancement suit le même
+           angle, d'où la trajectoire en hélice. Mouvement réduit : pas de vrille. */
+        var tour = CALME ? 0 : c.tChute / VRILLE_T * 360;
+        c.x = c.xChute + (CALME ? 0 : Math.sin(tour * Math.PI / 180) * 10);
+        c.oiseau.style.transform = 'rotateY(' + Math.round(tour % 360) + 'deg) rotate('
+          + Math.round(Math.min(1, c.tChute / .2) * 82) + 'deg)';
         /* v9.0 — le corps occupe le milieu de la pose : on arrête la chute
            quand ce milieu atteint l'herbe, pas le bas du cadre. */
         if (c.y >= solY - c.h * GISANT) {
           c.y = solY - c.h * GISANT;
+          c.oiseau.style.transform = '';           // rend la main à la feuille de style
           c.gisant = true;                         // aile refermée, sur le dos (CSS)
           c.el.classList.add('att-gisant');
           gisants.push(c);
@@ -730,7 +742,7 @@
       return this;
     },
     score: function () { return score; },
-    version: '9.1-chute-en-tourbillon'
+    version: '9.2-vrille-vers-le-bas'
   };
 
   /* ============================================================
